@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>KHAM | Catalog</title>
+
+    <link rel="stylesheet" href="asset/css/style.css">
+    <link rel="stylesheet" href="asset/css/responsive.css">
+    <link rel="stylesheet" href="asset/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <div id="nav-placeholder"></div>
+
+    <!-- HERO -->
+    <section class="hero">
+        <p>Best For The Best</p>
+    </section>
+
+    <section class="products-catalog container">
+
+        <h2 class="catalog-main-title">Products</h2>
+        <div class="catalog-toolbar">
+            <div class="toolbar-left">
+                <span class="label">Filter:</span>
+                <div class="custom-dropdown">
+                    <div class="dropdown-trigger">Availability <i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="dropdown-content">
+                        <label><input type="checkbox" class="filter-check" value="in-stock"> In stock</label>
+                        <label><input type="checkbox" class="filter-check" value="out-of-stock"> Sold out</label>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="toolbar-right">
+                <span class="label">Sort by:</span>
+                <div class="custom-dropdown">
+                    <div class="dropdown-trigger" id="currentSort">Alphabetically, A-Z <i
+                            class="fa-solid fa-chevron-down"></i></div>
+                    <div class="dropdown-content">
+                        <div class="sort-option" data-sort="az">Alphabetically, A-Z</div>
+                        <div class="sort-option" data-sort="price-low">Price, low to high</div>
+                        <div class="sort-option" data-sort="price-high">Price, high to low</div>
+                    </div>
+                </div>
+                <span class="products-count" id="productCount">0 products</span>
+            </div>
+        </div>
+
+        <div class="products-grid" id="mainGrid"></div>
+
+    </section>
+
+    <!-- FOOTER -->
+    <div id="footer-placeholder"></div>
+
+    <!-- SCRIPTS -->
+    <script src="asset/js/store.js"></script>
+    <script src="asset/js/product.js"></script>
+    <script src="asset/js/cart.js"></script>
+    <script src="asset/js/main.js"></script>
+    <script src="asset/js/all.min.js"></script>
+
+</body>
+
+</html>

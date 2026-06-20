@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHAM | Shopping Cart</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="asset/css/style.css">
+    <link rel="stylesheet" href="asset/css/responsive.css">
+    <link rel="stylesheet" href="asset/css/all.min.css">
+</head>
+
+<body>
+
+    <div id="nav-placeholder"></div>
+
+    <div class="cart-page container">
+        <div id="emptyCart" class="empty-cart" style="display: none;">
+            <h2>Your cart is empty</h2>
+            <a href="product.html" class="continue-btn">Continue shopping</a>
+
+            <div class="login-box">
+                <h3>Have an account?</h3>
+                <a href="#">Log in</a><span> to check out faster.</span>
+            </div>
+        </div>
+
+        <div id="cartContent" style="display: none;">
+            <div class="cart-header">
+                <h1>Your cart</h1>
+                <a href="product.html">Continue shopping</a>
+            </div>
+
+            <div id="cartItems" class="cart-items">
+            </div>
+
+            <div class="cart-summary">
+                <h3>Estimated total</h3>
+                <p id="totalPrice" class="total-price-val"></p>
+                <a href="checkout.html" class="checkout-btn">Check out</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="asset/js/store.js"></script>
+    <script src="asset/js/cart.js"></script>
+    <script src="asset/js/main.js"></script>
+    <script src="asset/js/all.min.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHAM | Product Details</title>
+    <link rel="stylesheet" href="asset/css/style.css">
+    <link rel="stylesheet" href="asset/css/responsive.css">
+    <link rel="stylesheet" href="asset/css/all.min.css">
+</head>
+
+<body>
+
+    <div id="nav-placeholder"></div>
+
+    <section class="product-details-container container">
+        <div class="product-gallery">
+            <div class="main-img-wrapper">
+                <img id="mainImage" class="main-img" src="" loading="lazy">
+            </div>
+            <div id="thumbs" class="thumbs"></div>
+        </div>
+        <div class="product-info">
+            <h1 id="productTitle" class="product-title"></h1>
+
+            <div class="price-row">
+                <span id="productPrice" class="price"></span>
+            </div>
+
+            <div class="options-group">
+                <p id="currentColor" class="option-label">Color: Select</p>
+                <div id="colorDots" class="color-dots"></div>
+            </div>
+
+            <div class="options-group">
+                <p class="option-label">Size</p>
+                <div id="sizeSelector" class="size-selector">
+                </div>
+            </div>
+
+            <div class="quantity-selector">
+                <button id="minusBtn">-</button>
+                <span id="qty">1</span>
+                <button id="plusBtn">+</button>
+            </div>
+
+            <button id="sizeGuideBtn" class="size-guide-btn">Size Guide</button>
+            <div id="sizeGuideBox" class="size-guide-box">
+                <img id="sizeGuideImage" src="">
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-cart" onclick="addToCartFromDetails()">Add to Cart</button>
+                <button class="btn-buy" id="buyNowBtn">Buy it now</button>
+            </div>
+
+            <div class="product-desc">
+                <p id="productDesc"></p>
+            </div>
+        </div>
+    </section>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="asset/js/store.js"></script>
+    <script src="asset/js/cart.js"></script>
+    <script src="asset/js/details.js"></script>
+    <script src="asset/js/main.js"></script>
+    <script src="asset/js/all.min.js"></script>
+</body>
+
+</html>

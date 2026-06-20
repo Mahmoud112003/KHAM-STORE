@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHAM Admin</title>
+    <link rel="stylesheet" href="asset/css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="admin-container">
+        <div class="dashboard-header">
+            <div>
+                <h1>لوحة تحكم KHAM </h1>
+                <p class="dashboard-subtitle">إدارة الأقسام والمنتجات الجديدة</p>
+            </div>
+            <div class="admin-actions">
+                <!-- زرر التحكم -->
+                <button onclick="logoutAdmin()" class="logout-btn">خروج</button>
+                <button onclick="clearAllData()" class="clear-btn">مسح البيانات</button>
+            </div>
+        </div>
+
+        <form id="productForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>اسم المنتج</label>
+                    <input type="text" id="adminProductName" required placeholder="مثلاً: Oversized Hoodie">
+                </div>
+
+                <div class="form-group">
+                    <label>السعر (EGP)</label>
+                    <input type="number" id="adminProductPrice" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label>القسم الرئيسي (Collection)</label>
+                    <select id="adminProductSection">
+                        <option value="Oversized Hoodie Basic">Oversized Hoodie Basic</option>
+                        <option value="Oversized Hoodie Printed">Oversized Hoodie Printed</option>
+                        <option value="T-shirt Basic">T-shirt Basic</option>
+                        <option value="T-shirt Printed">T-shirt Printed</option>
+                        <option value="Sweatpants">Sweatpants</option>
+                        <option value="Jeans">Jeans</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>النوع الفرعي (Sub-Category)</label>
+                    <select id="adminProductSubCategory">
+                        <option value="">اختر النوع (Sub-Category)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>حالة توفر المنتج</label>
+                    <select id="adminProductStatus" required>
+                        <option value="in-stock">متوفر (In Stock)</option>
+                        <option value="out-of-stock">نفذت الكمية (Sold Out)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>الألوان (افصل بينها بفاصلة ,)</label>
+                    <input type="text" id="adminProductColors" placeholder="أسود, أبيض, بيج">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>وصف المنتج التفصيلي</label>
+                <textarea id="adminProductDesc" rows="4" placeholder="اكتب تفاصيل ومميزات القطعة هنا..."></textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label style="display: block; margin-bottom: 10px;">المقاسات المتاحة</label>
+                <div class="sizes-container" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <label><input type="checkbox" class="size-checkbox" value="S"> S</label>
+                    <label><input type="checkbox" class="size-checkbox" value="M"> M</label>
+                    <label><input type="checkbox" class="size-checkbox" value="L"> L</label>
+                    <label><input type="checkbox" class="size-checkbox" value="XL"> XL</label>
+                    <label><input type="checkbox" class="size-checkbox" value="XXL"> XXL</label>
+                    <label><input type="checkbox" class="size-checkbox" value="XXXL"> XXXL</label>
+                </div>
+            </div>
+
+            <div class="form-grid" style="margin-top: 15px;">
+                <div class="form-group">
+                    <label>صور المنتج (يمكنك اختيار أكثر من صورة)</label>
+                    <input type="file" id="adminProductImages" multiple accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>دليل المقاسات كصورة (Size Guide Image)</label>
+                    <input type="file" id="adminProductSizeGuide" accept="image/*">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>صورة غلاف القسم (Section Cover - اختياري للرئيسية)</label>
+                <input type="file" id="adminSectionCover" accept="image/*">
+            </div>
+
+            <button type="submit" class="save-btn" style="margin-top: 20px;">حفظ المنتج والبيانات</button>
+            <div id="adminMsg"
+                style="display: none; padding: 10px; margin-top: 10px; border-radius: 5px; text-align: center;"></div>
+        </form>
+
+        <div class="products-header" style="margin-top: 40px;">
+            <h2>المنتجات المضافة</h2>
+            <input type="text" id="searchInput" placeholder="بحث باسم المنتج أو القسم...">
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>الصورة</th>
+                        <th>المنتج</th>
+                        <th>القسم</th>
+                        <th>الحالة</th>
+                        <th>السعر</th>
+                        <th>التحكم</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="asset/js/store.js"></script>
+    <script src="asset/js/admin.js"></script>
+</body>
+
+</html>

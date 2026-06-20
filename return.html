@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHAM|خام</title>
+    <link rel="stylesheet" href="asset/css/style.css">
+    <link rel="stylesheet" href="asset/css/responsive.css">
+    <link rel="stylesheet" href="asset/css/all.min.css">
+</head>
+
+<body>
+    <!-- Placeholder for navigation bar -->
+    <div id="nav-placeholder"></div>
+    <!-- Returns section with form -->
+    <section class="returns-section">
+        <div class="returns-container">
+            <div class="returns-card">
+                <!-- Logo side -->
+                <div class="returns-logo-side">
+                    <h1>KHAM</h1>
+                </div>
+                <!-- Form side -->
+                <div class="returns-form-side">
+                    <h2>Return & Exchange</h2>
+                    <!-- Order number input -->
+                    <div class="input-group">
+                        <label>Order Number</label>
+                        <input type="text" id="orderNumber" placeholder="Enter your order number">
+                    </div>
+                    <!-- Email or phone input -->
+                    <div class="input-group">
+                        <label>Email or Phone Number</label>
+                        <input type="text" id="phoneNumber" placeholder="Email or phone">
+                    </div>
+                    <!-- Check order button -->
+                    <button class="check-btn" onclick="sendData()">Check Order</button>
+                    <!-- Message display -->
+                    <p id="msg"></p>
+                    <!-- Policy text and link -->
+                    <p class="policy-text">
+                        Track your order by entering the details.
+                        <a href="#">Our policy</a>
+                    </p>
+                    <!-- Policy acceptance checkbox -->
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="policyCheck">
+                        I accept the return policy
+                    </label>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- JavaScript files -->
+         <script src="asset/js/store.js"></script>
+    <script src="asset/js/main.js"></script>
+    <script src="asset/js/return.js"></script>
+    <script src="asset/js/all.min.js"></script>
+</body>
+
+</html>

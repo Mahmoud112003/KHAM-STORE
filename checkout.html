@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | KHAM</title>
+    <link rel="stylesheet" href="asset/css/style.css">
+    <link rel="stylesheet" href="asset/css/all.min.css">
+    <link rel="stylesheet" href="asset/css/responsive.css">
+</head>
+
+<body>
+    <div class="checkout-container">
+        <div class="checkout-form-section">
+            <header class="checkout-header">
+                <h1 class="logo">KHAM | خام</h1>
+                <a href="cart.html" class="cart-icon"><i class="fa-solid fa-bag-shopping"></i></a>
+            </header>
+
+            <form id="checkoutForm">
+                <div class="form-group">
+                    <div class="group-header">
+                        <h2>Contact</h2>
+                    </div>
+                    <input type="email" id="email" class="full-width" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <h2>Delivery</h2>
+                    <div class="form-row">
+                        <input type="text" id="firstName" placeholder="First name" required>
+                        <input type="text" id="lastName" placeholder="Last name" required>
+                    </div>
+                    <input type="text" id="address" class="full-width"
+                        placeholder="Address (Street, Building, Apartment)" required>
+
+                    <div class="form-row">
+                        <select id="governorate" required>
+                            <option value="">Select Governorate</option>
+                            <option value="Cairo">القاهرة</option>
+                            <option value="Giza">الجيزة</option>
+                            <option value="Alexandria">الإسكندرية</option>
+                            <option value="Dakahlia">الدقهلية</option>
+                            <option value="Red Sea">البحر الأحمر</option>
+                            <option value="Beheira">البحيرة</option>
+                            <option value="Fayoum">الفيوم</option>
+                            <option value="Gharbia">الغربية</option>
+                            <option value="Ismailia">الإسماعيلية</option>
+                            <option value="Monufia">المنوفية</option>
+                            <option value="Minya">المنيا</option>
+                            <option value="Qalyubia">القليوبية</option>
+                            <option value="New Valley">الوادي الجديد</option>
+                            <option value="Suez">السويس</option>
+                            <option value="Sharqia">الشرقية</option>
+                            <option value="Aswan">أسوان</option>
+                            <option value="Assiut">أسيوط</option>
+                            <option value="Beni Suef">بني سويف</option>
+                            <option value="Port Said">بورسعيد</option>
+                            <option value="Damietta">دمياط</option>
+                            <option value="South Sinai">جنوب سيناء</option>
+                            <option value="Kafr El Sheikh">كفر الشيخ</option>
+                            <option value="Matrouh">مطروح</option>
+                            <option value="Luxor">الأقصر</option>
+                            <option value="Qena">قنا</option>
+                            <option value="North Sinai">شمال سيناء</option>
+                            <option value="Sohag">سوهاج</option>
+                        </select>
+                        <input type="tel" id="phone" placeholder="Phone number" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h2>Payment</h2>
+                    <div class="payment-options">
+                        <label class="payment-card active">
+                            <input type="radio" name="payment" value="cod" checked>
+                            <div class="payment-content">
+                                <div class="radio-custom"></div>
+                                <span class="payment-label"><i class="fa-solid fa-money-bill-wave"></i> Cash on
+                                    Delivery (COD)</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="complete-order-btn">Complete order</button>
+            </form>
+        </div>
+        <aside class="order-summary-section">
+            <div id="checkoutItems"></div>
+            <div class="summary-totals" id="summaryTotals">
+            </div>
+        </aside>
+    </div>
+
+
+    <script src="asset/js/store.js"></script>
+    <script src="asset/js/cart.js"></script>
+    <script src="asset/js/checkout.js"></script>
+    <script src="asset/js/all.min.js"></script>
+</body>
+
+</html>
