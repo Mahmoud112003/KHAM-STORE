@@ -1,12 +1,13 @@
-function getCartData() {
+// 1. تصدير الدوال الأساسية لتتمكن باقي الملفات (مثل details.js) من استيرادها واستخدامها مباشرة
+export function getCartData() {
     return JSON.parse(localStorage.getItem("cart") || "[]");
 }
 
-function saveCartData(cart) {
+export function saveCartData(cart) {
     localStorage.setItem("cart", JSON.stringify(cart));
 }
 
-function updateCartCount() {
+export function updateCartCount() {
     const countEl = document.getElementById("cartCount");
 
     if (!countEl) {
@@ -15,17 +16,15 @@ function updateCartCount() {
     }
 
     const cart = getCartData();
-    const count = cart.reduce((sum, item) => {
-        return sum + item.qty;
-    }, 0);
+    const count = cart.reduce((sum, item) => sum + item.qty, 0);
 
     countEl.innerText = count > 0 ? count : "";
 }
 
-function addToCart(product) {
+export function addToCart(product) {
     let cart = getCartData();
 
-    // التحقق من وجود
+    // التحقق من وجود المنتج بنفس المقاس واللون
     const existing = cart.find(item =>
         item.id == product.id &&
         item.size == product.size &&
@@ -33,10 +32,8 @@ function addToCart(product) {
     );
 
     if (existing) {
-        // زيادة الكمية
         existing.qty += product.qty || 1;
     } else {
-        // إضافة منتج جديد تماماً
         cart.push({
             ...product,
             qty: product.qty || 1
@@ -50,10 +47,8 @@ function addToCart(product) {
 
 function showToast(message) {
     let toast = document.createElement("div");
-
     toast.className = "toast";
     toast.innerText = message;
-
     document.body.appendChild(toast);
 
     setTimeout(() => {
@@ -62,18 +57,15 @@ function showToast(message) {
 
     setTimeout(() => {
         toast.classList.remove("show");
-
         setTimeout(() => {
             toast.remove();
         }, 300);
-
     }, 2000);
 }
 
-window.updateQty = function (id, type) {
-
+// 2. تحديث كمية المنتج وتصديرها مع ربطها بـ window لضمان عدم حدوث تعارض
+export function updateQty(id, type) {
     let cart = getCartData();
-
     let item = cart.find(p => p.id == id);
 
     if (!item) return;
@@ -83,7 +75,6 @@ window.updateQty = function (id, type) {
     }
 
     if (type === "minus") {
-
         if (item.qty > 1) {
             item.qty--;
         } else {
@@ -93,107 +84,73 @@ window.updateQty = function (id, type) {
     }
 
     saveCartData(cart);
-
     renderCart();
-
     updateCartCount();
-};
+}
 
-
-window.removeFromCart = function (id) {
-
+// 3. حذف المنتج من السلة وتصديرها
+export function removeFromCart(id) {
     let cart = getCartData();
-
     cart = cart.filter(item => item.id != id);
 
     saveCartData(cart);
-
     renderCart();
-
     updateCartCount();
-};
+}
 
-function renderCart() {
+// ربط الدوال بـ window كخطوة أمان إضافية لكي تعمل مع الـ HTML المكتوب ديناميكياً بدون مشاكل النطاق
+window.updateQty = updateQty;
+window.removeFromCart = removeFromCart;
 
+// 4. رندرة السلة وبناء العناصر
+export function renderCart() {
     const container = document.getElementById("cartItems");
-
     const totalText = document.getElementById("totalPrice");
-
     const emptyDiv = document.getElementById("emptyCart");
-
     const contentDiv = document.getElementById("cartContent");
 
     if (!container || !totalText) return;
 
     const cart = getCartData();
 
-    // EMPTY
+    // السلة فارغة
     if (cart.length === 0) {
-
-        emptyDiv.style.display = "block";
-
-        contentDiv.style.display = "none";
-
+        if (emptyDiv) emptyDiv.style.display = "block";
+        if (contentDiv) contentDiv.style.display = "none";
         updateCartCount();
-
         return;
     }
 
-    // HAS ITEMS
-    emptyDiv.style.display = "none";
-
-    contentDiv.style.display = "block";
+    // السلة بها منتجات
+    if (emptyDiv) emptyDiv.style.display = "none";
+    if (contentDiv) contentDiv.style.display = "block";
 
     container.innerHTML = "";
-
     let total = 0;
 
     cart.forEach(item => {
-
         total += item.price * item.qty;
 
         container.innerHTML += `
-        
         <div class="cart-item">
-
             <div class="cart-left">
-
                 <img src="${item.image}" class="cart-img">
-
                 <div class="cart-info">
-
                     <h3>${item.name}</h3>
-
                     <p>${item.price} EGP</p>
-
-                    <small>
-                        ${item.color || "-"} / ${item.size || "-"}
-                    </small>
-
+                    <small>${item.color || "-"} / ${item.size || "-"}</small>
                 </div>
-
             </div>
-
             <div class="cart-right">
-
                 <div class="qty-controls">
-
                     <button onclick="updateQty('${item.id}','minus')">−</button>
-
                     <span>${item.qty}</span>
-
                     <button onclick="updateQty('${item.id}','plus')">+</button>
-
                 </div>
-
                 <button class="remove-btn" onclick="removeFromCart('${item.id}')">
-
                     <i class="fa-solid fa-trash"></i>
-
                 </button>
-
             </div>
-
         </div>
         `;
     });
@@ -201,12 +158,10 @@ function renderCart() {
     totalText.innerText = "EGP " + total.toFixed(2);
 }
 
+// تشغيل الرندرة وتحديث العداد عند تحميل الصفحة
 document.addEventListener("DOMContentLoaded", () => {
-
     renderCart();
-
     setTimeout(() => {
         updateCartCount();
     }, 500);
-
 });

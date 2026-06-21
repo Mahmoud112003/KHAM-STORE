@@ -1,13 +1,15 @@
+// 1. استيراد دالة تحديث عداد السلة من ملف الـ store لضمان مزامنة البيانات
+import { updateCartCount } from './store.js';
+
 // Load navigation bar from nav.html and insert into placeholder
 fetch("nav.html")
     .then(res => res.text())
     .then(data => {
         const nav = document.getElementById("nav-placeholder");
         if (nav) nav.innerHTML = data;
-        // Update cart count if function exists
-        if (typeof updateCartCount === "function") {
-            updateCartCount();
-        }
+        
+        // تشغيل دالة تحديث العداد فوراً بعد التأكد من أن الـ Navbar نزل في الـ DOM
+        updateCartCount();
     });
 
 // Load footer from footer.html and insert into placeholder
@@ -16,6 +18,7 @@ fetch("footer.html")
     .then(data => {
         const footer = document.getElementById("footer-placeholder");
         if (footer) footer.innerHTML = data;
+        
         // Initialize language selection
         initLanguage();
     });
@@ -26,13 +29,16 @@ function initLanguage() {
     const langOptions = document.getElementById("langOptions");
     const currentLang = document.getElementById("currentLang");
     const options = document.querySelectorAll(".option");
+    
     // Prevent execution if elements not found
     if (!langBtn) return;
+    
     // Toggle dropdown on button click
     langBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         langOptions.classList.toggle("open");
     });
+    
     // Handle option selection
     options.forEach(option => {
         option.addEventListener("click", () => {
@@ -46,9 +52,10 @@ function initLanguage() {
             langOptions.classList.remove("open");
         });
     });
+    
     // Close dropdown when clicking outside
     document.addEventListener("click", () => {
-        langOptions.classList.remove("open");
+        if (langOptions) langOptions.classList.remove("open");
     });
 }
 

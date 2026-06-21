@@ -1,23 +1,16 @@
+// 1. استيراد دالة جلب منتج واحد بالـ ID ودالة الـ Cart من ملف الـ store
+import { getProductById, addToCart } from './store.js';
+
 function getQueryParam(name) {
     return new URLSearchParams(window.location.search).get(name);
 }
 
 const productId = getQueryParam("productId");
-const product = getProductById(productId);
-const defaultProduct = {
-    id: Date.now(),
-    name: "KHAM Piece",
-    price: 0,
-    status: "in-stock",
-    images: ["asset/images/placeholder.png"],
-    colors: [],
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    description: "No description available.",
-    sizeGuide: ""
-};
-
-const currentProduct = product || defaultProduct;
+let currentProduct = null; // سيتم تعبئته بمجرد وصول البيانات من الفايربيز
 let qty = 1;
+
+// سيتم استخدام هذا المتغير لتخزين اسم اللون النشط بدقة من البيانات مباشرة وليس من الـ DOM
+let selectedColorName = "Standard"; 
 
 function showToast(message) {
     const existingToast = document.querySelector(".kham-toast");
@@ -26,8 +19,8 @@ function showToast(message) {
     const toast = document.createElement("div");
     toast.className = "kham-toast";
     toast.innerHTML = `
-        <div class=\"toast-content\">
-            <i class=\"fa-solid fa-circle-check\"></i>
+        <div class="toast-content">
+            <i class="fa-solid fa-circle-check"></i>
             <span>${message}</span>
         </div>
     `;
@@ -43,11 +36,38 @@ function showToast(message) {
     }, 3000);
 }
 
+// 2. دالة التهيئة الأساسية تحولت إلى async لتنتظر الفايربيز
+async function initDetailsPage() {
+    if (!productId) {
+        console.error("No product ID provided in URL.");
+        return;
+    }
 
-function initDetailsPage() {
-    if (!currentProduct) return;
+    // جلب بيانات المنتج من الفايربيز مباشرة وانتظارها
+    currentProduct = await getProductById(productId);
 
+    // حماية الصفحة وتوفير بيانات افتراضية إذا لم يعثر على المنتج
+    if (!currentProduct) {
+        console.warn("Product not found in Firebase database!");
+        currentProduct = {
+            id: productId,
+            name: "KHAM Piece",
+            price: 0,
+            status: "in-stock",
+            images: ["asset/images/placeholder.png"],
+            colors: [],
+            sizes: ["S", "M", "L", "XL", "XXL"],
+            description: "No description available.",
+            sizeGuide: ""
+        };
+    }
 
+    // رندرة وتوزيع البيانات على الـ DOM بعد التأكد من وصولها
+    renderProductData();
+}
+
+// دالة توزيع البيانات والرندرة
+function renderProductData() {
     const titleEl = document.getElementById("productTitle");
     const priceEl = document.getElementById("productPrice");
     const descEl = document.getElementById("productDesc");
@@ -56,7 +76,7 @@ function initDetailsPage() {
     if (priceEl) priceEl.innerText = `${currentProduct.price} EGP`;
     if (descEl) descEl.innerText = currentProduct.description || "No description available.";
 
-    // 2. معالجة الصور المتعددة
+    // معالجة الصور المتعددة والـ Thumbnails
     const mainImg = document.getElementById("mainImage");
     const thumbsContainer = document.getElementById("thumbs");
 
@@ -87,7 +107,7 @@ function initDetailsPage() {
         }
     }
 
-    // 3. عرض الألوان
+    // عرض الألوان
     const colorDotsContainer = document.getElementById("colorDots");
     const currentColorLabel = document.getElementById("currentColor");
 
@@ -96,13 +116,13 @@ function initDetailsPage() {
         const productColors = currentProduct.colors || [];
 
         if (productColors.length === 0) {
+            selectedColorName = "Standard";
             if (currentColorLabel) currentColorLabel.innerText = "Color: Standard";
         } else {
             productColors.forEach((color, index) => {
                 const dot = document.createElement("div");
                 dot.className = "color-dot";
 
-                // دعم لو اللون مبعوت
                 const colorCode = typeof color === "object" ? color.code : color;
                 const colorName = typeof color === "object" ? color.name : color;
 
@@ -118,7 +138,8 @@ function initDetailsPage() {
                 if (index === 0) {
                     dot.classList.add("active");
                     dot.style.borderColor = "#000";
-                    if (currentColorLabel) currentColorLabel.innerText = `Color: ${colorName || 'Default'}`;
+                    selectedColorName = colorName || 'Default';
+                    if (currentColorLabel) currentColorLabel.innerText = `Color: ${selectedColorName}`;
                 }
 
                 dot.onclick = () => {
@@ -128,7 +149,8 @@ function initDetailsPage() {
                     });
                     dot.classList.add("active");
                     dot.style.borderColor = "#000";
-                    if (currentColorLabel) currentColorLabel.innerText = `Color: ${colorName || 'Default'}`;
+                    selectedColorName = colorName || 'Default';
+                    if (currentColorLabel) currentColorLabel.innerText = `Color: ${selectedColorName}`;
                 };
 
                 colorDotsContainer.appendChild(dot);
@@ -136,14 +158,14 @@ function initDetailsPage() {
         }
     }
 
-    // 4. عرض المقاسات
+    // عرض المقاسات
     const sizeSelector = document.getElementById("sizeSelector");
     if (sizeSelector) {
         sizeSelector.innerHTML = "";
         const productSizes = currentProduct.sizes || ["S", "M", "L", "XL", "XXL"];
-        productSizes.forEach(size => {
+        productSizes.forEach((size, index) => {
             const btn = document.createElement("button");
-            btn.className = "size-btn";
+            btn.className = "size-btn" + (index === 0 ? " active" : "");
             btn.innerText = size;
             btn.onclick = () => {
                 document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("active"));
@@ -153,13 +175,12 @@ function initDetailsPage() {
         });
     }
 
-    // 5. تفعيل الـ Size Guide
+    // تفعيل الـ Size Guide
     const sizeGuideBtn = document.getElementById("sizeGuideBtn");
     const sizeGuideBox = document.getElementById("sizeGuideBox");
     const sizeGuideImage = document.getElementById("sizeGuideImage");
 
     if (sizeGuideBtn && sizeGuideBox) {
-        // قراءة الصورة المرفوعة
         const guideSrc = currentProduct.sizeGuide || currentProduct.sizeGuideImg;
 
         if (guideSrc) {
@@ -167,20 +188,30 @@ function initDetailsPage() {
 
             sizeGuideBtn.onclick = (e) => {
                 e.stopPropagation();
-                if (sizeGuideBox.style.display === "block") {
-                    sizeGuideBox.style.display = "none";
-                } else {
-                    sizeGuideBox.style.display = "block";
-                }
+                sizeGuideBox.style.display = sizeGuideBox.style.display === "block" ? "none" : "block";
             };
         } else {
-
             sizeGuideBtn.style.display = "none";
+        }
+    }
+
+    // معالجة حالة نفاد الكمية (Sold Out) وتحديث الأزرار
+    if (currentProduct.status === "out-of-stock") {
+        const addToCartBtn = document.getElementById("addToCartBtn") || document.querySelector(".add-to-cart-btn");
+        const buyNowBtn = document.getElementById("buyNowBtn") || document.querySelector(".buy-now-btn");
+        if (addToCartBtn) {
+            addToCartBtn.innerText = "SOLD OUT";
+            addToCartBtn.disabled = true;
+            addToCartBtn.style.opacity = "0.5";
+        }
+        if (buyNowBtn) {
+            buyNowBtn.disabled = true;
+            buyNowBtn.style.opacity = "0.5";
         }
     }
 }
 
-// إغلاق بوكس المقاسات
+// إغلاق بوكس المقاسات عند الضغط في أي مكان بالخارج
 document.addEventListener("click", () => {
     const sizeGuideBox = document.getElementById("sizeGuideBox");
     if (sizeGuideBox) sizeGuideBox.style.display = "none";
@@ -205,7 +236,7 @@ if (document.getElementById("minusBtn")) {
 
 // ============ إضافة للسلة ============
 function addToCartFromDetails() {
-    if (currentProduct.status === "out-of-stock") {
+    if (!currentProduct || currentProduct.status === "out-of-stock") {
         showToast("This product is sold out!");
         return;
     }
@@ -216,64 +247,71 @@ function addToCartFromDetails() {
         return;
     }
 
-    const currentColorEl = document.getElementById("currentColor");
-    const colorName = currentColorEl ? currentColorEl.innerText.replace("Color: ", "") : "Standard";
-
     const cartItem = {
-        id: `${currentProduct.id}-${activeSize.innerText}-${colorName}`,
+        id: `${currentProduct.id}-${activeSize.innerText}-${selectedColorName}`,
         productId: currentProduct.id,
         name: currentProduct.name,
         price: currentProduct.price,
-        image: document.getElementById("mainImage").src,
+        image: document.getElementById("mainImage")?.src || "asset/images/placeholder.png",
         size: activeSize.innerText,
-        color: colorName,
+        color: selectedColorName,
         qty: qty
     };
 
     addToCart(cartItem);
     showToast("Added to cart successfully!");
-}
-// ==========================================
-// إضافة حدث لزرار الـ Buy Now في نهاية الملف
-// ==========================================
-document.addEventListener("DOMContentLoaded", () => {
-    const buyNowBtn = document.getElementById("buyNowBtn") || document.querySelector(".buy-now-btn");
     
+    // إعادة ضبط العداد بعد نجاح الإضافة
+    qty = 1;
+    const qtyEl = document.getElementById("qty");
+    if (qtyEl) qtyEl.innerText = qty;
+}
+
+// تصدير الدالة لربطها بحدث الـ onclick للـ HTML إذا لزم الأمر
+window.addToCartFromDetails = addToCartFromDetails;
+
+// ============ الشراء الفوري (Buy Now) والتنصت للأحداث ============
+
+document.addEventListener("DOMContentLoaded", () => {
+    const addToCartBtn = document.getElementById("addToCartBtn");
+    if (addToCartBtn) {
+        addToCartBtn.addEventListener("click", addToCartFromDetails);
+    }
+
+    const buyNowBtn = document.getElementById("buyNowBtn") || document.querySelector(".buy-now-btn");
     if (buyNowBtn) {
         buyNowBtn.addEventListener("click", () => {
-            // الشيك على حالة المنتج
-            if (currentProduct.status === "out-of-stock") {
+            if (!currentProduct || currentProduct.status === "out-of-stock") {
                 showToast("This product is sold out!");
                 return;
             }
 
-            // الشيك على المقاس النشط من الكود بتاعك
             const activeSize = document.querySelector(".size-btn.active");
             if (!activeSize) {
                 showToast("Please select a size first!");
                 return;
             }
 
-            const currentColorEl = document.getElementById("currentColor");
-            const colorName = currentColorEl ? currentColorEl.innerText.replace("Color: ", "") : "Standard";
-
             const cartItem = {
-                id: `${currentProduct.id}-${activeSize.innerText}-${colorName}`,
+                id: `${currentProduct.id}-${activeSize.innerText}-${selectedColorName}`,
                 productId: currentProduct.id,
                 name: currentProduct.name,
                 price: currentProduct.price,
-                image: document.getElementById("mainImage").src,
+                image: document.getElementById("mainImage")?.src || "asset/images/placeholder.png",
                 size: activeSize.innerText,
-                color: colorName,
+                color: selectedColorName,
                 qty: qty
             };
 
-            // إضافة المنتج للسلة الحالية والتوجيه
             addToCart(cartItem);
             window.location.href = "checkout.html";
         });
     }
 });
 
-// تشغيل الدالة
-document.addEventListener("DOMContentLoaded", initDetailsPage);
+// تشغيل دالة التهيئة الأساسية عند تحميل الـ DOM لانتظار الفايربيز
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDetailsPage);
+} else {
+    initDetailsPage();
+}

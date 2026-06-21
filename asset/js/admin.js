@@ -1,9 +1,20 @@
-if (!localStorage.getItem("adminLoggedIn")) {
-    window.location.href = "login.html";
-}
+// 1. استيراد الدوال الأساسية من الفايربيز وملف الإعدادات
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    collection, 
+    addDoc, 
+    getDocs, 
+    deleteDoc, 
+    doc, 
+    updateDoc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 let editMode = false;
 let editingId = null;
+let cachedProducts = []; // مصفوفة محلية لتسهيل عمليات الفلترة والبحث الفوري
+
 const form = document.getElementById("productForm");
 const msg = document.getElementById("adminMsg");
 const tableBody = document.getElementById("productsTableBody");
@@ -11,6 +22,23 @@ const searchInput = document.getElementById("searchInput");
 const sectionSelect = document.getElementById("adminProductSection");
 const subCategorySelect = document.getElementById("adminProductSubCategory");
 
+// ==========================================
+// 🛡️ خط الدفاع الأول: مراقبة حالة تسجيل الدخول وطرد المتسللين أونلاين
+// ==========================================
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        // لو مفيش مستخدم مسجل دخول.. اطرده فوراً لصفحة اللوجن
+        window.location.href = "login.html";
+    } else {
+        console.log("تم التحقق من هوية الأدمن بنجاح:", user.email);
+        // تهيئة قائمة الـ Sub-Category وتشغيل سحب البيانات من Firestore
+        if (sectionSelect) {
+            sectionSelect.addEventListener("change", updateSubCategories);
+            updateSubCategories();
+        }
+        await loadAdminProductsTable();
+    }
+});
 
 function updateSubCategories() {
     if (!sectionSelect || !subCategorySelect) return;
@@ -36,15 +64,17 @@ function updateSubCategories() {
         subCategorySelect.appendChild(optionEl);
     });
 
-    // اختيار القيمة تلقائياً بما إن الأقسام بقت صريحة ومنفصلة
     if (options.length === 1) {
         subCategorySelect.value = options[0];
     }
 }
 window.updateSubCategories = updateSubCategories;
 
+// ==========================================
+// ⚡ دالة ضغط الصور الذكية باستخدام الـ Canvas للحفاظ على سرعة الاستور
+// ==========================================
 function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
@@ -55,14 +85,15 @@ function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
                 const ctx = canvas.getContext('2d');
                 let { width, height } = img;
 
+                // احتساب الأبعاد الجديدة مع الحفاظ على التناسب الـ Aspect Ratio
                 if (width > height) {
                     if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
+                        height = Math.round((height * maxWidth) / width);
                         width = maxWidth;
                     }
                 } else {
                     if (height > maxHeight) {
-                        width = (width * maxHeight) / height;
+                        width = Math.round((width * maxHeight) / height);
                         height = maxHeight;
                     }
                 }
@@ -70,13 +101,19 @@ function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
                 canvas.width = width;
                 canvas.height = height;
                 ctx.drawImage(img, 0, 0, width, height);
+                
+                // إرجاع الصورة بصيغة جافا سكريبت النصية خفيفة الوزن
                 resolve(canvas.toDataURL('image/jpeg', quality));
             };
+            img.onerror = (err) => reject(err);
         };
+        reader.onerror = (err) => reject(err);
     });
 }
 
-// 3. حفظ أو تحديث المنتج عند إرسال الفورم
+// ==========================================
+// 3. حفظ أو تحديث المنتج في Firebase Firestore
+// ==========================================
 if (form) {
     form.onsubmit = async (e) => {
         e.preventDefault();
@@ -90,34 +127,47 @@ if (form) {
             const imageInput = document.getElementById("adminProductImages");
             let imageBase64List = [];
 
+            // 1️⃣ معالجة وضغط صور المنتج الأساسية
             if (imageInput && imageInput.files.length > 0) {
                 for (let i = 0; i < imageInput.files.length; i++) {
-                    const compressed = await compressImage(imageInput.files[i]);
+                    console.log(`جاري ضغط صورة المنتج رقم ${i + 1}:`, imageInput.files[i].name);
+                    const compressed = await compressImage(imageInput.files[i], 800, 800, 0.7);
                     imageBase64List.push(compressed);
                 }
             } else if (editMode && editingId) {
-                const currentProd = typeof getProductById === "function" ? getProductById(editingId) : null;
+                const currentProd = cachedProducts.find(p => p.id === editingId);
                 if (currentProd) imageBase64List = currentProd.images || [];
             }
 
+            // 2️⃣ معالجة وضغط صورة جدول المقاسات (Size Guide)
             const sizeGuideInput = document.getElementById("adminProductSizeGuide");
-            let sizeGuideBase64 = editMode && editingId ? (typeof getProductById === "function" ? getProductById(editingId)?.sizeGuide : "") : "";
+            let sizeGuideBase64 = "";
+            if (editMode && editingId) {
+                const currentProd = cachedProducts.find(p => p.id === editingId);
+                sizeGuideBase64 = currentProd?.sizeGuide || "";
+            }
             if (sizeGuideInput && sizeGuideInput.files.length > 0) {
-                sizeGuideBase64 = await compressImage(sizeGuideInput.files[0]);
+                console.log("جاري ضغط صورة جدول المقاسات...");
+                sizeGuideBase64 = await compressImage(sizeGuideInput.files[0], 800, 800, 0.7);
             }
 
+            // 3️⃣ معالجة وضغط صورة غلاف القسم (Section Cover)
             const sectionCoverInput = document.getElementById("adminSectionCover");
-            let sectionCoverBase64 = editMode && editingId ? (typeof getProductById === "function" ? getProductById(editingId)?.sectionCover : "") : "";
+            let sectionCoverBase64 = "";
+            if (editMode && editingId) {
+                const currentProd = cachedProducts.find(p => p.id === editingId);
+                sectionCoverBase64 = currentProd?.sectionCover || "";
+            }
             if (sectionCoverInput && sectionCoverInput.files.length > 0) {
-                sectionCoverBase64 = await compressImage(sectionCoverInput.files[0]);
+                console.log("جاري ضغط صورة غلاف القسم...");
+                sectionCoverBase64 = await compressImage(sectionCoverInput.files[0], 1200, 600, 0.7); // أبعاد أكبر تناسب الـ Cover
             }
 
-            // استخراج المقاسات والألوان المكتوبة
+            // تجهيز المقاسات والألوان المعطاة
             const sizes = Array.from(document.querySelectorAll(".size-checkbox:checked")).map(cb => cb.value);
             const colorInput = document.getElementById("adminProductColors");
             const rawColors = colorInput ? colorInput.value.split(",").map(c => c.trim()).filter(Boolean) : [];
 
-            // ماطحة الألوان من العربية الإنجليزية إلى Hex
             const colorMap = {
                 "أسود": "#000000", "black": "#000000",
                 "أبيض": "#ffffff", "white": "#ffffff",
@@ -137,12 +187,11 @@ if (form) {
 
             const colors = rawColors.map(c => {
                 const nameLower = c.toLowerCase();
-                // لو الاسم متسجل في الخريطة هيرجع الكود بتاعه، لو مش متسجل وهو كود هيكس يبدأ بـ # هيستخدمه، غير كدة هيديله رمادي افتراضي
-                // لو الاسم متسجل في الخريطة هيرجع الكود، لو مش سجل هيدي مراد
                 const detectedCode = colorMap[nameLower] || colorMap[c] || (c.startsWith("#") ? c : "#cccccc");
                 return { name: c, code: detectedCode };
             });
 
+            // بناء كائن البيانات النهائي الموجه للسيرفر
             const productData = {
                 name: document.getElementById("adminProductName").value.trim(),
                 price: parseFloat(document.getElementById("adminProductPrice").value) || 0,
@@ -154,16 +203,20 @@ if (form) {
                 colors: colors.length > 0 ? colors : [{ name: "Standard", code: "#000000" }],
                 images: imageBase64List.length > 0 ? imageBase64List : ["asset/images/placeholder.png"],
                 sizeGuide: sizeGuideBase64,
-                sectionCover: sectionCoverBase64
+                sectionCover: sectionCoverBase64,
+                updatedAt: new Date().toISOString()
             };
 
             if (editMode && editingId) {
-                if (typeof updateProduct === "function") updateProduct(editingId, productData);
-                showAdminMsg("تم تحديث المنتج بنجاح!", "success");
+                // تحديث مستند حقيقي داخل الفايربيز Firestore
+                const productRef = doc(db, "products", editingId);
+                await updateDoc(productRef, productData);
+                showAdminMsg("تم تحديث المنتج بنجاح أونلاين!", "success");
             } else {
-                productData.id = typeof generateId === "function" ? generateId() : Date.now();
-                if (typeof addProduct === "function") addProduct(productData);
-                showAdminMsg("تم إضافة المنتج الجديد بنجاح!", "success");
+                // إضافة مستند جديد لـ Firestore
+                productData.createdAt = new Date().toISOString();
+                await addDoc(collection(db, "products"), productData);
+                showAdminMsg("تم إضافة المنتج الجديد بنجاح لـ Firebase!", "success");
             }
 
             form.reset();
@@ -171,26 +224,43 @@ if (form) {
             editingId = null;
             if (submitButton) submitButton.innerText = "حفظ المنتج والبيانات";
 
-            // إعادة ضبط قائمة الـ Sub-Category بعد مسح الفورم
             if (subCategorySelect) subCategorySelect.innerHTML = '<option value="">اختر النوع (Sub-Category)</option>';
 
-            // إعادة عرض الجدول فوراً بالمنتجات الجديدة
-            loadAdminProductsTable();
+            // إعادة سحب البيانات وعرض الجدول فوراً بعد الحفظ بلمح البصر
+            await loadAdminProductsTable();
 
         } catch (err) {
             console.error(err);
-            showAdminMsg("حدث خطأ أثناء الحفظ التخزيني.", "danger");
+            showAdminMsg("حدث خطأ أثناء الاتصال بالـ Firebase.", "danger");
         } finally {
             if (submitButton) submitButton.disabled = false;
         }
     };
 }
 
-function loadAdminProductsTable(explicitList = null) {
+// ==========================================
+// 4. جلب وعرض البيانات من Firestore Database
+// ==========================================
+async function loadAdminProductsTable(explicitList = null) {
     if (!tableBody) return;
-    tableBody.innerHTML = "";
+    
+    if (!explicitList) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">جاري تحميل منتجات KHAM من السيرفر...</td></tr>`;
+        try {
+            const querySnapshot = await getDocs(collection(db, "products"));
+            cachedProducts = [];
+            querySnapshot.forEach((doc) => {
+                cachedProducts.push({ id: doc.id, ...doc.data() });
+            });
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            showAdminMsg("فشل جلب المنتجات من السيرفر. تحقق من الـ Rules الخاص بـ Firestore.", "danger");
+            return;
+        }
+    }
 
-    const list = explicitList || (typeof getProducts === "function" ? getProducts() : []);
+    const list = explicitList || cachedProducts;
+    tableBody.innerHTML = "";
 
     if (list.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">لا توجد منتجات حالياً. قم بإضافة أول قطعة لبراند KHAM.</td></tr>`;
@@ -218,10 +288,11 @@ function loadAdminProductsTable(explicitList = null) {
 }
 window.renderProductsTable = loadAdminProductsTable;
 
-// 5. دالة التعديل
+// ==========================================
+// 5. دالة تجهيز حقول الفورم للتعديل
+// ==========================================
 window.editProductAdmin = function (id) {
-    if (typeof getProductById !== "function") return;
-    const p = getProductById(id);
+    const p = cachedProducts.find(prod => prod.id === id);
     if (!p) return;
 
     editMode = true;
@@ -249,16 +320,22 @@ window.editProductAdmin = function (id) {
 };
 window.editProduct = window.editProductAdmin;
 
-// 6. دالة الحذف
-window.deleteProductAdmin = function (id) {
-    if (confirm("هل أنت متأكد من رغبتك في حذف هذا المنتج نهائياً؟")) {
-        if (typeof deleteProduct === "function") deleteProduct(id);
-        loadAdminProductsTable();
-        showAdminMsg(" تم حذف المنتج بنجاح.", "success");
+// ==========================================
+// 6. دالة الحذف النهائي من Firestore
+// ==========================================
+window.deleteProductAdmin = async function (id) {
+    if (confirm("هل أنت متأكد من رغبتك في حذف هذا المنتج نهائياً من قاعدة البيانات؟")) {
+        try {
+            await deleteDoc(doc(db, "products", id));
+            showAdminMsg("تم حذف المنتج بنجاح من السيرفر.", "success");
+            await loadAdminProductsTable();
+        } catch (error) {
+            console.error("Delete Error:", error);
+            showAdminMsg("فشل الحذف، حدث خطأ في السيرفر.", "danger");
+        }
     }
 };
 
-// 7. رسائل التنبيهات
 function showAdminMsg(text, type) {
     if (!msg) return;
     msg.innerText = text;
@@ -273,96 +350,31 @@ function showAdminMsg(text, type) {
     setTimeout(() => { msg.style.display = "none"; }, 4000);
 }
 
-// البحث الفوري
+// البحث الفوري عبر الـ Cache المحلي لتجنب استهلاك Requests الفايربيز بلا داعي
 searchInput?.addEventListener("input", () => {
     const value = searchInput.value.toLowerCase().trim();
-    const all = typeof getProducts === "function" ? getProducts() : [];
-    const filtered = all.filter(p =>
+    const filtered = cachedProducts.filter(p =>
         p.name.toLowerCase().includes(value) ||
         p.section.toLowerCase().includes(value)
     );
     loadAdminProductsTable(filtered);
 });
 
-// تسجيل الخروج
-window.logoutAdmin = function () {
+// ==========================================
+// 9. تسجيل الخروج الآمن أونلاين عبر Firebase Auth
+// ==========================================
+window.logoutAdmin = async function () {
     if (confirm("هل أنت متأكد من تسجيل الخروج؟")) {
-        localStorage.removeItem("adminLoggedIn");
-        window.location.href = "login.html";
+        try {
+            await signOut(auth);
+            localStorage.removeItem("adminLoggedIn"); // تنظيف الـ Cache الاحتياطي
+            window.location.href = "login.html";
+        } catch (error) {
+            console.error("Logout Error:", error);
+        }
     }
 };
 
 window.clearAllData = function () {
-    if (confirm(" تحذير: سيتم مسح كافة المنتجات! هل أنت متأكد؟")) {
-        localStorage.removeItem("products");
-        loadAdminProductsTable([]);
-        showAdminMsg(" تم مسح جميع البيانات بنجاح", "success");
-    }
+    alert("هذا الخيار تم تعطيله للأمان التام لقاعدة بيانات Firestore السحابية.");
 };
-
-// 10. تشغيل الجدول
-document.addEventListener("DOMContentLoaded", () => {
-    if (sectionSelect) {
-        sectionSelect.addEventListener("change", updateSubCategories);
-        // تشغيلها لأول مرة لتهيئة الحقل بناءً على الاختيار الافتراضي
-        updateSubCategories();
-    }
-    loadAdminProductsTable();
-});
-// 11. دالة سحرية
-function autoFixOldProductsColors() {
-    const allProducts = typeof getProducts === "function" ? getProducts() : [];
-    if (allProducts.length === 0) return;
-
-    const colorMap = {
-        "أسود": "#000000", "black": "#000000",
-        "أبيض": "#ffffff", "white": "#ffffff",
-        "أصفر": "#ffeb3b", "yellow": "#ffeb3b",
-        "أحمر": "#f44336", "red": "#f44336",
-        "أزرق": "#2196f3", "blue": "#2196f3",
-        "أخضر": "#4caf50", "green": "#4caf50",
-        "رمادي": "#9e9e9e", "grey": "#9e9e9e", "gray": "#9e9e9e",
-        "كحلي": "#001f3f", "navy": "#001f3f",
-        "بيج": "#f5f5dc", "beige": "#f5f5dc",
-        "بني": "#795548", "brown": "#795548",
-        "برتقالي": "#ff9800", "orange": "#ff9800",
-        "وردي": "#e91e63", "pink": "#e91e63",
-        "بنفسجي": "#9c27b0", "purple": "#9c27b0",
-        "زيتوني": "#556b2f", "olive": "#556b2f"
-    };
-
-    let updatedAny = false;
-
-    const fixedProducts = allProducts.map(p => {
-        if (p.colors && Array.from(p.colors).length > 0) {
-            let itemChanged = false;
-            const fixedColors = p.colors.map(c => {
-                const nameLower = c.name.toLowerCase().trim();
-                const correctCode = colorMap[nameLower] || colorMap[c.name] || (c.name.startsWith("#") ? c.name : "#cccccc");
-
-                // لو الكود المتسجل حالياً غلط أو أبيض افتراضي وهو مش لون أبيض، نصلحه
-                if (c.code !== correctCode && (c.code === "#ffffff" && nameLower !== "أبيض" && nameLower !== "white")) {
-                    itemChanged = true;
-                    updatedAny = true;
-                    return { name: c.name, code: correctCode };
-                }
-                return c;
-            });
-
-            if (itemChanged) {
-                return { ...p, colors: fixedColors };
-            }
-        }
-        return p;
-    });
-
-    if (updatedAny && typeof saveProducts === "function") {
-        saveProducts(fixedProducts);
-        loadAdminProductsTable(); // إعادة عرض الجدول فوراً بالأكواد الجديدة
-    }
-}
-
-// تشغيل الفحص التلقائي بمجرد تحميل الصفحة
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(autoFixOldProductsColors, 500); // تأخير بسيط لضمان تحميل الداتا بالكامل
-});

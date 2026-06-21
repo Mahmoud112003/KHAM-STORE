@@ -1,10 +1,14 @@
-function renderHomeCollections() {
+// 1. استيراد دالة جلب المنتجات من ملف الـ store
+import { getProducts } from './store.js';
+
+// 2. تحويل الدالة لـ async علشان تنتظر جلب البيانات من الفايربيز أونلاين
+async function renderHomeCollections() {
     let products = [];
     try {
-        const rawProducts = localStorage.getItem("products");
-        products = rawProducts ? JSON.parse(rawProducts) : [];
+        // جلب المنتجات مباشرة من الفايربيز بدلاً من الـ localStorage
+        products = await getProducts();
     } catch (e) {
-        console.error("Error reading products", e);
+        console.error("Error reading products from Firebase", e);
     }
 
     const sectionsOrder = [
@@ -22,9 +26,9 @@ function renderHomeCollections() {
         return;
     }
 
-    // إضافة الكلاس الجديد بدلاً من كتابة الستايل الثابت هنا يدوياً
+    // تهيئة الـ Grid ومسح الـ Placeholder القديم
     container.className = "home-sections";
-    container.innerHTML = ""; // مسح أي محتوى قديم لتهيئة الـ Grid
+    container.innerHTML = ""; 
 
     sectionsOrder.forEach(section => {
         const sectionProducts = products.filter(product => {
@@ -95,4 +99,9 @@ function renderHomeCollections() {
     }
 }
 
-window.addEventListener("load", renderHomeCollections);
+// 3. يفضل استخدام DOMContentLoaded بدلاً من load لتبدأ رندرة الأقسام أسرع فور تحميل الـ DOM
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", renderHomeCollections);
+} else {
+    renderHomeCollections();
+}

@@ -1,3 +1,6 @@
+// 1. استيراد دالة تحديث عداد السلة من الـ store لضمان تصفير العداد بعد نجاح الأوردر
+import { updateCartCount } from './store.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById("checkoutForm");
     const govSelect = document.getElementById("governorate");
@@ -90,13 +93,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cart.length === 0) return;
 
             const btn = document.querySelector(".complete-order-btn");
-            btn.innerText = "جاري التأكيد...";
-            btn.disabled = true;
+            if (btn) {
+                btn.innerText = "جاري التأكيد...";
+                btn.disabled = true;
+            }
 
             const firstName = document.getElementById("firstName").value;
             const lastName = document.getElementById("lastName").value;
             const totalPrice = document.querySelector(".total-price span:last-child").innerText;
             const generatedID = `KHM${Math.floor(Math.random() * 10000)}`;
+
+            // تعديل تجميع الـ Items ليشمل المقاس واللون بالتفصيل داخل شيت الإكسيل
+            const itemsDetailed = cart.map(i => `${i.name} [Size: ${i.size || 'Std'}, Color: ${i.color || 'Def'}] (${i.qty})`).join(' - ');
 
             const orderData = {
                 data: [{
@@ -107,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     "Phone": `'${document.getElementById("phone").value}`,
                     "Address": document.getElementById("address").value,
                     "Governorate": govSelect.value,
-                    "Items": cart.map(i => `${i.name} (${i.qty})`).join(' - '),
+                    "Items": itemsDetailed,
                     "Total": totalPrice
                 }]
             };
@@ -120,12 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(orderData)
                 });
 
+                // مسح السلة وتحديث عداد السلة في الـ Navbar فوراً
                 localStorage.removeItem("cart");
+                updateCartCount();
+                
                 showSuccessPage(firstName, generatedID);
             } catch (error) {
                 console.error(error);
                 // لو حصل مشكلة في الربط بنظهر صفحة النجاح برضه عشان العميل ما يقلقش
                 localStorage.removeItem("cart");
+                updateCartCount();
+                
                 showSuccessPage(firstName, generatedID);
             }
         });

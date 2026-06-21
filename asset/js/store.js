@@ -1,99 +1,132 @@
-function getProducts() {
-    return JSON.parse(localStorage.getItem("products")) || [];
-}
+// 1. استيراد إعدادات الفايربيز والدوال المطلوبة للتعامل مع Firestore
+import { db, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } from './firebase-config.js';
 
-function saveProducts(products) {
+// =========================================================================
+// 2. دالات المنتجات المربوطة بالفايربيز (Firebase Firestore Functions)
+// =========================================================================
+
+// جلب جميع المنتجات من الفايربيز
+export async function getProducts() {
     try {
-        localStorage.setItem("products", JSON.stringify(products));
+        const querySnapshot = await getDocs(collection(db, "products"));
+        let products = [];
+        querySnapshot.forEach((doc) => {
+            // بنجيب الـ ID بتاع الوثيقة من فايربيز وبنحطه مع باقي البيانات الخاصة بالمنتج
+            products.push({ id: doc.id, ...doc.data() });
+        });
+        return products;
     } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-            alert('خطأ: مساحة التخزين ممتلئة! يرجى تقليل حجم الصور المرفوعة.');
-            throw new Error('Storage quota exceeded.');
-        } else {
-            throw error;
-        }
+        console.error("خطأ في جلب المنتجات من الفايربيز:", error);
+        return [];
     }
 }
 
-function addProduct(product) {
-    const products = getProducts();
-    products.push(product);
-    saveProducts(products);
+// إضافة منتج جديد للفايربيز
+export async function addProduct(product) {
+    try {
+        const docRef = await addDoc(collection(db, "products"), product);
+        console.log("تم إضافة المنتج بنجاح بمعرف:", docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error("خطأ أثناء إضافة المنتج للفايربيز:", error);
+        throw error;
+    }
 }
 
-function getProductById(id) {
-    return getProducts().find(p => p.id == id || p.id == String(id));
-}
-
-function updateProduct(id, data) {
-    const products = getProducts().map(p =>
-        (p.id == id) ? { ...p, ...data } : p
-    );
-    saveProducts(products);
-}
-
-function deleteProduct(id) {
-    const products = getProducts().filter(p => p.id != id);
-    saveProducts(products);
-}
-
-function toggleProductStatus(id) {
-    const products = getProducts().map(p => {
-        if (p.id == id) {
-            return {
-                ...p,
-                status: p.status === "in-stock" ? "out-of-stock" : "in-stock"
-            };
+// جلب منتج واحد معين بالـ ID (مهم جداً لصفحة التفاصيل details.js)
+export async function getProductById(id) {
+    try {
+        const docRef = doc(db, "products", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        } else {
+            console.warn("المنتج غير موجود في قاعدة البيانات!");
+            return null;
         }
-        return p;
-    });
-    saveProducts(products);
+    } catch (error) {
+        console.error("خطأ في جلب تفاصيل المنتج:", error);
+        return null;
+    }
 }
 
-function getOrders() {
-    return JSON.parse(localStorage.getItem("orders")) || [];
+// تعديل بيانات منتج موجود بالـ ID
+export async function updateProduct(id, data) {
+    try {
+        const docRef = doc(db, "products", id);
+        await updateDoc(docRef, data);
+        console.log("تم تحديث المنتج بنجاح:", id);
+    } catch (error) {
+        console.error("خطأ في تحديث المنتج:", error);
+        throw error;
+    }
 }
 
-function saveOrders(orders) {
-    localStorage.setItem("orders", JSON.stringify(orders));
+// مسح منتج نهائياً بالـ ID
+export async function deleteProduct(id) {
+    try {
+        const docRef = doc(db, "products", id);
+        await deleteDoc(docRef);
+        console.log("تم مسح المنتج بنجاح:", id);
+    } catch (error) {
+        console.error("خطأ في مسح المنتج:", error);
+        throw error;
+    }
 }
 
-function getAdminLoggedIn() {
-    return localStorage.getItem("adminLoggedIn") === "true";
+// تغيير حالة المنتج (متوفر / نفذت الكمية)
+export async function toggleProductStatus(id, currentStatus) {
+    try {
+        const docRef = doc(db, "products", id);
+        const newStatus = currentStatus === "in-stock" ? "out-of-stock" : "in-stock";
+        await updateDoc(docRef, { status: newStatus });
+        console.log("تم تغيير حالة المنتج بنجاح إلى:", newStatus);
+    } catch (error) {
+        console.error("خطأ في تغيير حالة المنتج:", error);
+    }
 }
 
-function setAdminLoggedIn(val) {
-    localStorage.setItem("adminLoggedIn", val ? "true" : "false");
-}
+// =========================================================================
+// 3. دالات الفلاتر والإحصائيات (مستمعة للـ Firebase الآن)
+// =========================================================================
 
-function generateId() {
-    return Date.now() + Math.floor(Math.random() * 1000);
-}
-
-
-function getSections() {
-    const products = getProducts();
+export async function getSections() {
+    const products = await getProducts();
     const sections = new Set(products.map(p => p.section).filter(Boolean));
     return [...sections];
 }
 
-function getSoldOutProducts() {
-    return getProducts().filter(p => p.status === "out-of-stock");
+export async function getSoldOutProducts() {
+    const products = await getProducts();
+    return products.filter(p => p.status === "out-of-stock");
 }
 
-function getInStockProducts() {
-    return getProducts().filter(p => p.status === "in-stock");
+export async function getInStockProducts() {
+    const products = await getProducts();
+    return products.filter(p => p.status === "in-stock");
 }
 
-function getCart() {
+// =========================================================================
+// 4. دالات السلة والأدمن (مستمرة على الـ LocalStorage لتجربة مستخدم أسرع)
+// =========================================================================
+
+export function getAdminLoggedIn() {
+    return localStorage.getItem("adminLoggedIn") === "true";
+}
+
+export function setAdminLoggedIn(val) {
+    localStorage.setItem("adminLoggedIn", val ? "true" : "false");
+}
+
+export function getCart() {
     return JSON.parse(localStorage.getItem("cart")) || [];
 }
 
-function saveCart(cart) {
+export function saveCart(cart) {
     localStorage.setItem("cart", JSON.stringify(cart));
 }
 
-function addToCart(item) {
+export function addToCart(item) {
     const cart = getCart();
     const existing = cart.find(p => p.id === item.id);
     if (existing) {
@@ -105,12 +138,16 @@ function addToCart(item) {
     updateCartCount();
 }
 
-function updateCartCount() {
+export function updateCartCount() {
     const el = document.getElementById("cartCount");
     if (!el) return;
     const cart = getCart();
     const count = cart.reduce((sum, item) => sum + item.qty, 0);
-    el.innerText = count;
+    el.innerText = count > 0 ? count : "0";
 }
 
-document.addEventListener("DOMContentLoaded", updateCartCount);
+// تحديث العداد فوراً وعند تحميل الصفحة لتجنب مشاكل توقيت الـ Module
+updateCartCount();
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", updateCartCount);
+}

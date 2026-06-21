@@ -1,11 +1,20 @@
+// 1. استيراد دالة جلب المنتجات من ملف الـ store
+import { getProducts } from './store.js';
+
 let allProducts = [];
 
-function loadProducts() {
-    if (typeof getProducts === "function") {
-        allProducts = getProducts();
+// 2. تحويل الدالة لـ async علشان تنتظر جلب البيانات من الفايربيز
+async function loadProducts() {
+    try {
+        // جلب المنتجات مباشرة من الفايربيز
+        allProducts = await getProducts();
+        
+        // تشغيل الفلاتر والأحداث بعد التأكد من وصول البيانات
+        applyFilters();
+        setupEventListeners();
+    } catch (error) {
+        console.error("خطأ أثناء تحميل المنتجات في الكتالوج:", error);
     }
-    applyFilters();
-    setupEventListeners();
 }
 
 function renderProducts(products) {
@@ -31,20 +40,21 @@ function renderProducts(products) {
         card.style.cursor = "pointer";
         card.innerHTML = `
             <div class="product-img-wrapper">
-        <img src="${image}" alt="${p.name || 'Product'}" loading="lazy">       
-         ${p.status === "out-of-stock" ? `<span class="sold-out-badge">sold out</span>` : ""}
+                <img src="${image}" alt="${p.name || 'Product'}" loading="lazy">       
+                ${p.status === "out-of-stock" ? `<span class="sold-out-badge">sold out</span>` : ""}
             </div>
             <div class="product-details">
                 <h3>${p.name || "KHAM Piece"}</h3>
                 <p>LE ${priceValue.toFixed(2)} EGP</p>
             </div>
         `;
+        // الفايربيز بيعمل الـ id كـ String تلقائي فحيشتغل هنا بدون أي مشاكل
         card.onclick = () => window.location.href = `details.html?productId=${p.id}`;
         grid.appendChild(card);
     });
 }
 
-// تربط أحداث الفلترة والترتيب
+// تربط أحداث الفلترة والترتيب (بقت زي ما هي بدون تعديل)
 function setupEventListeners() {
     const sortOptions = document.querySelectorAll(".sort-option");
     sortOptions.forEach(option => {
@@ -81,11 +91,11 @@ function setupEventListeners() {
     };
 }
 
-// التحكم بالفلاتر والترتيب والربط مع الهوم
+// التحكم بالفلاتر والترتيب والربط مع الهوم (زي ما هي بدون تعديل)
 function applyFilters() {
     let filtered = [...allProducts];
 
-    // ربط الهوم: الفلترة بناءً علة الأقسام
+    // ربط الهوم: الفلترة بناءً على الأقسام
     const urlParams = new URLSearchParams(window.location.search);
     const sectionParam = urlParams.get('section');
 
@@ -123,4 +133,5 @@ function applyFilters() {
     renderProducts(filtered);
 }
 
+// تشغيل جلب البيانات بمجرد تحميل الصفحة
 document.addEventListener("DOMContentLoaded", loadProducts);
