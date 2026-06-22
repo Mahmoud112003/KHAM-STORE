@@ -8,15 +8,21 @@ import { db, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } fr
 // جلب جميع المنتجات من الفايربيز
 export async function getProducts() {
     try {
+        console.time("Firebase Products");
+
         const querySnapshot = await getDocs(collection(db, "products"));
+
+        console.timeEnd("Firebase Products");
+
         let products = [];
+
         querySnapshot.forEach((doc) => {
-            // بنجيب الـ ID بتاع الوثيقة من فايربيز وبنحطه مع باقي البيانات الخاصة بالمنتج
             products.push({ id: doc.id, ...doc.data() });
         });
+
         return products;
     } catch (error) {
-        console.error("خطأ في جلب المنتجات من الفايربيز:", error);
+        console.error(error);
         return [];
     }
 }
