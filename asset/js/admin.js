@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-config.js';
-import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -12,37 +12,14 @@ const form = document.getElementById("productForm");
 const msg = document.getElementById("adminMsg");
 const tableBody = document.getElementById("productsTableBody");
 
-// 1. وظائف مساعدة (الضغط والرفع)
-function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                let { width, height } = img;
-                if (width > height) {
-                    if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-                } else {
-                    if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
-                }
-                canvas.width = width; canvas.height = height;
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-        };
-    });
-}
-
+// 1. دالة رفع الصور المباشرة (حل نهائي لمشكلة CORS)
 async function uploadToStorage(file, folder) {
-    const compressedData = await compressImage(file);
-    const fileName = Date.now() + "_" + file.name;
+    const fileName = `${Date.now()}_${file.name}`;
     const storageRef = ref(storage, `${folder}/${fileName}`);
-    await uploadString(storageRef, compressedData, 'data_url');
-    return await getDownloadURL(storageRef);
+    
+    // رفع الملف مباشرة كـ File/Blob
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
 }
 
 function showAdminMsg(text, type) {
@@ -54,14 +31,13 @@ function showAdminMsg(text, type) {
     setTimeout(() => { msg.style.display = "none"; }, 4000);
 }
 
-// 2. معالجة حفظ البيانات (مع المقاسات والألوان)
+// 2. معالجة حفظ البيانات
 form.onsubmit = async (e) => {
     e.preventDefault();
     const submitButton = form.querySelector(".save-btn");
     submitButton.disabled = true;
 
     try {
-        // جمع المقاسات المختارة
         const selectedSizes = Array.from(document.querySelectorAll('.size-checkbox:checked')).map(cb => cb.value);
         
         // رفع الصور
@@ -69,6 +45,7 @@ form.onsubmit = async (e) => {
         let imageUrls = [];
         if (imageInput.files.length > 0) {
             for (let file of imageInput.files) {
+                // رفع الملف مباشرة
                 imageUrls.push(await uploadToStorage(file, 'products'));
             }
         }
@@ -88,14 +65,15 @@ form.onsubmit = async (e) => {
 
         if (editMode && editingId) {
             await updateDoc(doc(db, "products", editingId), productData);
-            showAdminMsg("تم التحديث!", "success");
+            showAdminMsg("تم التحديث بنجاح!", "success");
         } else {
             await addDoc(collection(db, "products"), { ...productData, createdAt: new Date().toISOString() });
-            showAdminMsg("تمت الإضافة!", "success");
+            showAdminMsg("تمت الإضافة بنجاح!", "success");
         }
         form.reset();
         await loadAdminProductsTable();
     } catch (err) {
+        console.error(err);
         showAdminMsg("خطأ: " + err.message, "danger");
     } finally {
         submitButton.disabled = false;
@@ -109,17 +87,17 @@ async function loadAdminProductsTable() {
     tableBody.innerHTML = "";
     cachedProducts.forEach(p => {
         tableBody.innerHTML += `<tr>
-            <td><img src="${p.images?.[0] || ''}" style="width:50px;"></td>
+            <td><img src="${p.images?.[0] || ''}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;"></td>
             <td>${p.name}</td>
             <td>${p.section}</td>
             <td>${p.status}</td>
-            <td>${p.price}</td>
+            <td>${p.price} EGP</td>
             <td><button onclick="window.deleteProduct('${p.id}')">حذف</button></td>
         </tr>`;
     });
 }
 
-// 4. دالة الحذف (تعريفها في window لتستدعيها الـ onclick)
+// 4. دوال التحكم
 window.deleteProduct = async (id) => {
     if (confirm("تأكيد الحذف؟")) {
         await deleteDoc(doc(db, "products", id));
@@ -130,6 +108,10 @@ window.deleteProduct = async (id) => {
 window.logoutAdmin = async () => {
     await signOut(auth);
     window.location.href = "login.html";
+};
+
+window.clearAllData = () => {
+    alert("ميزة مسح البيانات تتطلب صلاحيات خاصة.");
 };
 
 onAuthStateChanged(auth, (user) => {
