@@ -1,9 +1,7 @@
 import { auth, db } from './firebase-config.js';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const storage = getStorage();
 let editMode = false;
 let editingId = null;
 let cachedProducts = [];
@@ -13,15 +11,28 @@ const msg = document.getElementById("adminMsg");
 const tableBody = document.getElementById("productsTableBody");
 
 // 1. دالة رفع الصور المباشرة (حل نهائي لمشكلة CORS)
-async function uploadToStorage(file, folder) {
-    const fileName = `${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, `${folder}/${fileName}`);
-    
-    // رفع الملف مباشرة كـ File/Blob
-    const snapshot = await uploadBytes(storageRef, file);
-    return await getDownloadURL(snapshot.ref);
-}
+async function uploadToCloudinary(file) {
+    const formData = new FormData();
 
+    formData.append("file", file);
+    formData.append("upload_preset", "kham_store");
+
+    const response = await fetch(
+        "https://api.cloudinary.com/v1_1/di1xlbutv/image/upload",
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    const data = await response.json();
+
+    if (!data.secure_url) {
+        throw new Error("فشل رفع الصورة إلى Cloudinary");
+    }
+
+    return data.secure_url;
+}
 function showAdminMsg(text, type) {
     if (!msg) return;
     msg.innerText = text;
@@ -46,7 +57,7 @@ form.onsubmit = async (e) => {
         if (imageInput.files.length > 0) {
             for (let file of imageInput.files) {
                 // رفع الملف مباشرة
-                imageUrls.push(await uploadToStorage(file, 'products'));
+                imageUrls.push(await uploadToCloudinary(file));
             }
         }
 
