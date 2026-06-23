@@ -10,27 +10,19 @@ const form = document.getElementById("productForm");
 const msg = document.getElementById("adminMsg");
 const tableBody = document.getElementById("productsTableBody");
 
-// 1. دالة الرفع إلى Cloudinary
+// دالة الرفع إلى Cloudinary
 async function uploadToCloudinary(file) {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "kham_store"); // تأكد أن هذا الاسم مطابق لما في لوحة تحكم Cloudinary
+    formData.append("upload_preset", "kham_store");
 
     try {
         const response = await fetch(
             "https://api.cloudinary.com/v1_1/di1xlbutv/image/upload",
-            {
-                method: "POST",
-                body: formData
-            }
+            { method: "POST", body: formData }
         );
-
         const data = await response.json();
-
-        if (!data.secure_url) {
-            throw new Error(data.error?.message || "فشل رفع الصورة إلى Cloudinary");
-        }
-
+        if (!data.secure_url) throw new Error(data.error?.message || "فشل رفع الصورة");
         return data.secure_url;
     } catch (err) {
         console.error("Cloudinary Error:", err);
@@ -47,7 +39,25 @@ function showAdminMsg(text, type) {
     setTimeout(() => { msg.style.display = "none"; }, 4000);
 }
 
-// 2. معالجة حفظ البيانات
+// 1. تفعيل وضع التعديل
+window.editProduct = (id) => {
+    const product = cachedProducts.find(p => p.id === id);
+    if (!product) return;
+
+    document.getElementById("adminProductName").value = product.name;
+    document.getElementById("adminProductPrice").value = product.price;
+    document.getElementById("adminProductSection").value = product.section;
+    document.getElementById("adminProductStatus").value = product.status;
+    document.getElementById("adminProductDesc").value = product.description || "";
+    document.getElementById("adminProductColors").value = product.colors ? product.colors.join(', ') : "";
+    
+    editMode = true;
+    editingId = id;
+    window.scrollTo(0, 0);
+    document.querySelector(".save-btn").innerText = "تحديث المنتج";
+};
+
+// 2. معالجة حفظ البيانات (إضافة أو تحديث)
 form.onsubmit = async (e) => {
     e.preventDefault();
     const submitButton = form.querySelector(".save-btn");
@@ -55,16 +65,15 @@ form.onsubmit = async (e) => {
 
     try {
         const selectedSizes = Array.from(document.querySelectorAll('.size-checkbox:checked')).map(cb => cb.value);
-        
-        // رفع الصور إلى Cloudinary
         const imageInput = document.getElementById("adminProductImages");
-        let imageUrls = [];
+        
+        let imageUrls = (editMode && editingId) ? cachedProducts.find(p => p.id === editingId).images : [];
         
         if (imageInput.files && imageInput.files.length > 0) {
-            showAdminMsg("جاري رفع الصور، يرجى الانتظار...", "success");
+            showAdminMsg("جاري رفع الصور...", "success");
+            imageUrls = []; // تحديث الصور إذا تم اختيار صور جديدة
             for (let file of imageInput.files) {
-                const url = await uploadToCloudinary(file);
-                imageUrls.push(url);
+                imageUrls.push(await uploadToCloudinary(file));
             }
         }
 
@@ -77,7 +86,7 @@ form.onsubmit = async (e) => {
             colors: document.getElementById("adminProductColors").value.split(',').map(c => c.trim()),
             description: document.getElementById("adminProductDesc").value,
             sizes: selectedSizes,
-            images: imageUrls.length > 0 ? imageUrls : (editMode ? cachedProducts.find(p=>p.id===editingId)?.images : []),
+            images: imageUrls,
             updatedAt: new Date().toISOString()
         };
 
@@ -89,11 +98,15 @@ form.onsubmit = async (e) => {
             showAdminMsg("تمت الإضافة بنجاح!", "success");
         }
         
+        // إعادة تعيين النموذج
+        editMode = false;
+        editingId = null;
+        document.querySelector(".save-btn").innerText = "حفظ المنتج والبيانات";
         form.reset();
         await loadAdminProductsTable();
     } catch (err) {
         console.error(err);
-        showAdminMsg("خطأ أثناء الحفظ: " + err.message, "danger");
+        showAdminMsg("خطأ: " + err.message, "danger");
     } finally {
         submitButton.disabled = false;
     }
@@ -101,23 +114,22 @@ form.onsubmit = async (e) => {
 
 // 3. عرض الجدول
 async function loadAdminProductsTable() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "products"));
-        cachedProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        tableBody.innerHTML = "";
-        cachedProducts.forEach(p => {
-            tableBody.innerHTML += `<tr>
-                <td><img src="${p.images?.[0] || ''}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;"></td>
-                <td>${p.name}</td>
-                <td>${p.section}</td>
-                <td>${p.status}</td>
-                <td>${p.price} EGP</td>
-                <td><button onclick="window.deleteProduct('${p.id}')">حذف</button></td>
-            </tr>`;
-        });
-    } catch (err) {
-        console.error("Error loading products:", err);
-    }
+    const querySnapshot = await getDocs(collection(db, "products"));
+    cachedProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    tableBody.innerHTML = "";
+    cachedProducts.forEach(p => {
+        tableBody.innerHTML += `<tr>
+            <td><img src="${p.images?.[0] || ''}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;"></td>
+            <td>${p.name}</td>
+            <td>${p.section}</td>
+            <td>${p.status}</td>
+            <td>${p.price} EGP</td>
+            <td>
+                <button onclick="window.editProduct('${p.id}')">تعديل</button>
+                <button onclick="window.deleteProduct('${p.id}')">حذف</button>
+            </td>
+        </tr>`;
+    });
 }
 
 // 4. دوال التحكم
