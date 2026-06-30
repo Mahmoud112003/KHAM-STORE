@@ -1,20 +1,5 @@
-// استيراد الإعدادات من ملفك
-import { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from './firebase-config.js';
-
-// --- دوال الـ Firebase المدمجة ---
-async function addProduct(data) { await addDoc(collection(db, "products"), data); }
-async function updateProduct(id, data) { await updateDoc(doc(db, "products", id), data); }
-async function deleteProduct(id) { await deleteDoc(doc(db, "products", id)); }
-async function getProducts() {
-    const snapshot = await getDocs(collection(db, "products"));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-async function getProductById(id) {
-    const products = await getProducts();
-    return products.find(p => p.id === id);
-}
-
-// ... (باقي الكود الخاص بك كما هو) ...
+import { db } from './firebase-config.js';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 if (!localStorage.getItem("adminLoggedIn")) {
     window.location.href = "login.html";
@@ -22,6 +7,8 @@ if (!localStorage.getItem("adminLoggedIn")) {
 
 let editMode = false;
 let editingId = null;
+let allProductsCache = []; // عملنا كاش للمنتجات عشان البحث والتعديل يكونوا صاروخ
+
 const form = document.getElementById("productForm");
 const msg = document.getElementById("adminMsg");
 const tableBody = document.getElementById("productsTableBody");
@@ -29,22 +16,35 @@ const searchInput = document.getElementById("searchInput");
 const sectionSelect = document.getElementById("adminProductSection");
 const subCategorySelect = document.getElementById("adminProductSubCategory");
 
-// [وظائف updateSubCategories و compressImage كما هي في كودك]
+
 function updateSubCategories() {
     if (!sectionSelect || !subCategorySelect) return;
+
     const section = sectionSelect.value;
     subCategorySelect.innerHTML = '<option value="">اختر النوع (Sub-Category)</option>';
+
     let options = [];
-    if (section === "Oversized Hoodie Basic" || section === "Oversized Hoodie Printed") options = ["Oversized Hoodie"];
-    else if (section === "T-shirt Basic" || section === "T-shirt Printed") options = ["T-shirt"];
-    else if (section === "Sweatpants") options = ["Sweatpants"];
-    else if (section === "Jeans") options = ["Jeans"];
+    if (section === "Oversized Hoodie Basic" || section === "Oversized Hoodie Printed") {
+        options = ["Oversized Hoodie"];
+    } else if (section === "T-shirt Basic" || section === "T-shirt Printed") {
+        options = ["T-shirt"];
+    } else if (section === "Sweatpants") {
+        options = ["Sweatpants"];
+    } else if (section === "Jeans") {
+        options = ["Jeans"];
+    }
+
     options.forEach(opt => {
         const optionEl = document.createElement("option");
-        optionEl.value = opt; optionEl.innerText = opt;
+        optionEl.value = opt;
+        optionEl.innerText = opt;
         subCategorySelect.appendChild(optionEl);
     });
-    if (options.length === 1) subCategorySelect.value = options[0];
+
+    // اختيار القيمة تلقائياً بما إن الأقسام بقت صريحة ومنفصلة
+    if (options.length === 1) {
+        subCategorySelect.value = options[0];
+    }
 }
 window.updateSubCategories = updateSubCategories;
 
@@ -59,9 +59,21 @@ function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 let { width, height } = img;
-                if (width > height) { if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; } }
-                else { if (height > maxHeight) { width = (width * maxHeight) / height; height = maxHeight; } }
-                canvas.width = width; canvas.height = height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
                 ctx.drawImage(img, 0, 0, width, height);
                 resolve(canvas.toDataURL('image/jpeg', quality));
             };
@@ -69,76 +81,314 @@ function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
     });
 }
 
-// 3. حفظ أو تحديث المنتج
+// 3. حفظ أو تحديث المنتج عند إرسال الفورم
 if (form) {
     form.onsubmit = async (e) => {
         e.preventDefault();
         const submitButton = form.querySelector(".save-btn");
-        submitButton.innerText = "جاري الحفظ...";
-        submitButton.disabled = true;
+        if (submitButton) {
+            submitButton.innerText = "جاري الحفظ والضغط...";
+            submitButton.disabled = true;
+        }
 
         try {
             const imageInput = document.getElementById("adminProductImages");
             let imageBase64List = [];
+
             if (imageInput && imageInput.files.length > 0) {
                 for (let i = 0; i < imageInput.files.length; i++) {
-                    imageBase64List.push(await compressImage(imageInput.files[i]));
+                    const compressed = await compressImage(imageInput.files[i]);
+                    imageBase64List.push(compressed);
                 }
-            } else if (editMode) {
-                const oldProd = await getProductById(editingId);
-                imageBase64List = oldProd.images;
+            } else if (editMode && editingId) {
+                const currentProd = allProductsCache.find(p => p.id === editingId);
+                if (currentProd) imageBase64List = currentProd.images || [];
             }
 
             const sizeGuideInput = document.getElementById("adminProductSizeGuide");
-            let sizeGuideBase64 = "";
-            if (sizeGuideInput.files.length > 0) sizeGuideBase64 = await compressImage(sizeGuideInput.files[0]);
-            else if (editMode) sizeGuideBase64 = (await getProductById(editingId)).sizeGuide;
+            let sizeGuideBase64 = editMode && editingId ? (allProductsCache.find(p => p.id === editingId)?.sizeGuide || "") : "";
+            if (sizeGuideInput && sizeGuideInput.files.length > 0) {
+                sizeGuideBase64 = await compressImage(sizeGuideInput.files[0]);
+            }
 
             const sectionCoverInput = document.getElementById("adminSectionCover");
-            let sectionCoverBase64 = "";
-            if (sectionCoverInput.files.length > 0) sectionCoverBase64 = await compressImage(sectionCoverInput.files[0]);
-            else if (editMode) sectionCoverBase64 = (await getProductById(editingId)).sectionCover;
+            let sectionCoverBase64 = editMode && editingId ? (allProductsCache.find(p => p.id === editingId)?.sectionCover || "") : "";
+            if (sectionCoverInput && sectionCoverInput.files.length > 0) {
+                sectionCoverBase64 = await compressImage(sectionCoverInput.files[0]);
+            }
 
+            // استخراج المقاسات والألوان المكتوبة
             const sizes = Array.from(document.querySelectorAll(".size-checkbox:checked")).map(cb => cb.value);
-            const rawColors = document.getElementById("adminProductColors").value.split(",").map(c => c.trim()).filter(Boolean);
+            const colorInput = document.getElementById("adminProductColors");
+            const rawColors = colorInput ? colorInput.value.split(",").map(c => c.trim()).filter(Boolean) : [];
+
+            // ماطحة الألوان من العربية الإنجليزية إلى Hex
+            const colorMap = {
+                "أسود": "#000000", "black": "#000000",
+                "أبيض": "#ffffff", "white": "#ffffff",
+                "أصفر": "#ffeb3b", "yellow": "#ffeb3b",
+                "أحمر": "#f44336", "red": "#f44336",
+                "أزرق": "#2196f3", "blue": "#2196f3",
+                "أخضر": "#4caf50", "green": "#4caf50",
+                "رمادي": "#9e9e9e", "grey": "#9e9e9e", "gray": "#9e9e9e",
+                "كحلي": "#001f3f", "navy": "#001f3f",
+                "بيج": "#f5f5dc", "beige": "#f5f5dc",
+                "بني": "#795548", "brown": "#795548",
+                "برتقالي": "#ff9800", "orange": "#ff9800",
+                "وردي": "#e91e63", "pink": "#e91e63",
+                "بنفسجي": "#9c27b0", "purple": "#9c27b0",
+                "زيتوني": "#556b2f", "olive": "#556b2f"
+            };
+
+            const colors = rawColors.map(c => {
+                const nameLower = c.toLowerCase();
+                const detectedCode = colorMap[nameLower] || colorMap[c] || (c.startsWith("#") ? c : "#cccccc");
+                return { name: c, code: detectedCode };
+            });
 
             const productData = {
                 name: document.getElementById("adminProductName").value.trim(),
                 price: parseFloat(document.getElementById("adminProductPrice").value) || 0,
-                section: sectionSelect.value,
-                subCategory: subCategorySelect.value,
-                status: document.getElementById("adminProductStatus").value,
-                description: document.getElementById("adminProductDesc").value.trim(),
+                section: sectionSelect ? sectionSelect.value : "Oversized Hoodie Basic",
+                subCategory: subCategorySelect ? subCategorySelect.value : "",
+                status: document.getElementById("adminProductStatus") ? document.getElementById("adminProductStatus").value : "in-stock",
+                description: document.getElementById("adminProductDesc") ? document.getElementById("adminProductDesc").value.trim() : "",
                 sizes: sizes,
-                colors: rawColors.map(c => ({ name: c, code: "#cccccc" })),
-                images: imageBase64List,
+                colors: colors.length > 0 ? colors : [{ name: "Standard", code: "#000000" }],
+                images: imageBase64List.length > 0 ? imageBase64List : ["asset/images/placeholder.png"],
                 sizeGuide: sizeGuideBase64,
                 sectionCover: sectionCoverBase64,
                 createdAt: new Date().toISOString()
             };
 
-            if (editMode) await updateProduct(editingId, productData);
-            else await addProduct(productData);
+            if (editMode && editingId) {
+                // تحديث في الفاير بيز
+                await updateDoc(doc(db, "products", editingId), productData);
+                showAdminMsg("تم تحديث المنتج بنجاح!", "success");
+            } else {
+                // إضافة للفاير بيز
+                await addDoc(collection(db, "products"), productData);
+                showAdminMsg("تم إضافة المنتج الجديد بنجاح!", "success");
+            }
 
-            showAdminMsg("تم الحفظ بنجاح!", "success");
             form.reset();
             editMode = false;
-            loadAdminProductsTable();
+            editingId = null;
+            if (submitButton) submitButton.innerText = "حفظ المنتج والبيانات";
+
+            // إعادة ضبط قائمة الـ Sub-Category بعد مسح الفورم
+            if (subCategorySelect) subCategorySelect.innerHTML = '<option value="">اختر النوع (Sub-Category)</option>';
+
+            // إعادة عرض الجدول فوراً بالمنتجات الجديدة
+            await loadAdminProductsTable();
+
         } catch (err) {
-            showAdminMsg("خطأ: " + err.message, "danger");
+            console.error(err);
+            showAdminMsg("حدث خطأ أثناء الحفظ التخزيني.", "danger");
         } finally {
-            submitButton.innerText = "حفظ المنتج والبيانات";
-            submitButton.disabled = false;
+            if (submitButton) submitButton.disabled = false;
         }
     };
 }
 
-// [باقي دالة loadAdminProductsTable وبقية الدوال كما هي بالضبط]
-// فقط تأكد أن تستخدم await عند استدعاء getProducts()
 async function loadAdminProductsTable(explicitList = null) {
     if (!tableBody) return;
-    const list = explicitList || (await getProducts());
-    // ... (إكمال عرض الجدول كما هو في كودك الأصلي)
+    tableBody.innerHTML = "";
+
+    let list = explicitList;
+    
+    // لو مفيش ليستة مبعوتة للبحث، هنجيب من الفاير بيز
+    if (!list) {
+        try {
+            const querySnapshot = await getDocs(collection(db, "products"));
+            allProductsCache = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            list = allProductsCache;
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            list = [];
+        }
+    }
+
+    if (list.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">لا توجد منتجات حالياً. قم بإضافة أول قطعة لبراند KHAM.</td></tr>`;
+        return;
+    }
+
+    list.forEach(p => {
+        const mainImg = p.images?.[0] || "asset/images/placeholder.png";
+        const priceValue = parseFloat(p.price) || 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><img src="${mainImg}" loading="lazy" style="width:50px; height:50px; object-fit:cover; border-radius:8px;"></td>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.section} ${p.subCategory ? `- ${p.subCategory}` : ''}</td>
+            <td><span class="badge ${p.status}">${p.status === 'in-stock' ? 'متوفر' : 'نفذت الكمية'}</span></td>
+            <td>${priceValue.toFixed(2)} EGP</td>
+            <td>
+                <button onclick="editProductAdmin('${p.id}')" style="background:#ffc107; color:#000; padding:5px 10px; border:none; border-radius:4px; cursor:pointer; margin-right:4px;">تعديل</button>
+                <button onclick="deleteProductAdmin('${p.id}')" style="background:#dc3545; color:#fff; padding:5px 10px; border:none; border-radius:4px; cursor:pointer;">حذف</button>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+}
+window.renderProductsTable = loadAdminProductsTable;
+
+// 5. دالة التعديل
+window.editProductAdmin = function (id) {
+    const p = allProductsCache.find(item => item.id === id);
+    if (!p) return;
+
+    editMode = true;
+    editingId = id;
+
+    document.getElementById("adminProductName").value = p.name;
+    document.getElementById("adminProductPrice").value = p.price;
+    if (sectionSelect) sectionSelect.value = p.section;
+    updateSubCategories();
+    if (subCategorySelect) subCategorySelect.value = p.subCategory || "";
+    if (document.getElementById("adminProductStatus")) document.getElementById("adminProductStatus").value = p.status;
+    if (document.getElementById("adminProductDesc")) document.getElementById("adminProductDesc").value = p.description || "";
+
+    document.querySelectorAll(".size-checkbox").forEach(cb => {
+        cb.checked = p.sizes ? p.sizes.includes(cb.value) : false;
+    });
+
+    if (document.getElementById("adminProductColors")) {
+        document.getElementById("adminProductColors").value = p.colors ? p.colors.map(c => c.name).join(", ") : "";
+    }
+
+    const submitButton = form.querySelector(".save-btn");
+    if (submitButton) submitButton.innerText = "تحديث المنتج الحالي";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+window.editProduct = window.editProductAdmin;
+
+// 6. دالة الحذف
+window.deleteProductAdmin = async function (id) {
+    if (confirm("هل أنت متأكد من رغبتك في حذف هذا المنتج نهائياً؟")) {
+        try {
+            await deleteDoc(doc(db, "products", id));
+            await loadAdminProductsTable();
+            showAdminMsg(" تم حذف المنتج بنجاح.", "success");
+        } catch (error) {
+            console.error(error);
+            showAdminMsg("حدث خطأ أثناء الحذف.", "danger");
+        }
+    }
+};
+
+// 7. رسائل التنبيهات
+function showAdminMsg(text, type) {
+    if (!msg) return;
+    msg.innerText = text;
+    msg.style.display = "block";
+    if (type === "success") {
+        msg.style.backgroundColor = "#e5f9e5";
+        msg.style.color = "#28a745";
+    } else {
+        msg.style.backgroundColor = "#ffe5e5";
+        msg.style.color = "#ff4d4d";
+    }
+    setTimeout(() => { msg.style.display = "none"; }, 4000);
 }
 
-// ... [بقية الدوال editProductAdmin, deleteProductAdmin, logout... كما هي]
+// البحث الفوري
+searchInput?.addEventListener("input", () => {
+    const value = searchInput.value.toLowerCase().trim();
+    const filtered = allProductsCache.filter(p =>
+        p.name.toLowerCase().includes(value) ||
+        p.section.toLowerCase().includes(value)
+    );
+    loadAdminProductsTable(filtered);
+});
+
+// تسجيل الخروج
+window.logoutAdmin = function () {
+    if (confirm("هل أنت متأكد من تسجيل الخروج؟")) {
+        localStorage.removeItem("adminLoggedIn");
+        window.location.href = "login.html";
+    }
+};
+
+window.clearAllData = async function () {
+    if (confirm(" تحذير: سيتم مسح كافة المنتجات! هل أنت متأكد؟")) {
+        try {
+            // مسح كل المنتجات من الفاير بيز
+            for (const p of allProductsCache) {
+                await deleteDoc(doc(db, "products", p.id));
+            }
+            await loadAdminProductsTable();
+            showAdminMsg(" تم مسح جميع البيانات بنجاح", "success");
+        } catch (error) {
+            showAdminMsg("حدث خطأ أثناء مسح البيانات", "danger");
+        }
+    }
+};
+
+// 10. تشغيل الجدول
+document.addEventListener("DOMContentLoaded", () => {
+    if (sectionSelect) {
+        sectionSelect.addEventListener("change", updateSubCategories);
+        // تشغيلها لأول مرة لتهيئة الحقل بناءً على الاختيار الافتراضي
+        updateSubCategories();
+    }
+    loadAdminProductsTable();
+});
+
+// 11. دالة سحرية
+async function autoFixOldProductsColors() {
+    if (allProductsCache.length === 0) return;
+
+    const colorMap = {
+        "أسود": "#000000", "black": "#000000",
+        "أبيض": "#ffffff", "white": "#ffffff",
+        "أصفر": "#ffeb3b", "yellow": "#ffeb3b",
+        "أحمر": "#f44336", "red": "#f44336",
+        "أزرق": "#2196f3", "blue": "#2196f3",
+        "أخضر": "#4caf50", "green": "#4caf50",
+        "رمادي": "#9e9e9e", "grey": "#9e9e9e", "gray": "#9e9e9e",
+        "كحلي": "#001f3f", "navy": "#001f3f",
+        "بيج": "#f5f5dc", "beige": "#f5f5dc",
+        "بني": "#795548", "brown": "#795548",
+        "برتقالي": "#ff9800", "orange": "#ff9800",
+        "وردي": "#e91e63", "pink": "#e91e63",
+        "بنفسجي": "#9c27b0", "purple": "#9c27b0",
+        "زيتوني": "#556b2f", "olive": "#556b2f"
+    };
+
+    let updatedAny = false;
+
+    for (const p of allProductsCache) {
+        if (p.colors && Array.from(p.colors).length > 0) {
+            let itemChanged = false;
+            const fixedColors = p.colors.map(c => {
+                const nameLower = c.name.toLowerCase().trim();
+                const correctCode = colorMap[nameLower] || colorMap[c.name] || (c.name.startsWith("#") ? c.name : "#cccccc");
+
+                // لو الكود المتسجل حالياً غلط أو أبيض افتراضي وهو مش لون أبيض، نصلحه
+                if (c.code !== correctCode && (c.code === "#ffffff" && nameLower !== "أبيض" && nameLower !== "white")) {
+                    itemChanged = true;
+                    updatedAny = true;
+                    return { name: c.name, code: correctCode };
+                }
+                return c;
+            });
+
+            if (itemChanged) {
+                // تحديث مباشر في الفاير بيز للمنتجات اللي اتصلحت
+                await updateDoc(doc(db, "products", p.id), { colors: fixedColors });
+            }
+        }
+    }
+
+    if (updatedAny) {
+        await loadAdminProductsTable(); // إعادة عرض الجدول فوراً بالأكواد الجديدة
+    }
+}
+
+// تشغيل الفحص التلقائي بمجرد تحميل الصفحة
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(autoFixOldProductsColors, 1500); // وقت إضافي بسيط لضمان تحميل الداتا من الفاير بيز
+});

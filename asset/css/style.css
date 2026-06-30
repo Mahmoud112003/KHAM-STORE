@@ -21,12 +21,15 @@
     font-family: 'Poppins', sans-serif;
     list-style: none;
     text-decoration: none;
+    
 }
+
 
 body {
     background-color: #dfdcd9;
     color: var(--color-text);
-    line-height: 1.6;
+    line-height: 1.6; 
+
 }
 
 .container {
@@ -565,8 +568,10 @@ body {
 }
 
 .thumbs {
-    display: flex;
+   display: flex;
     gap: 12px;
+    flex-wrap: wrap; 
+    justify-content: center;
 }
 
 .thumbs img {

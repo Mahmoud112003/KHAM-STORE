@@ -63,9 +63,23 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCheckout();
 
     // ==========================================
-    // 2. صفحة النجاح
+    // 2. صفحة النجاح (معدلة بإضافة زر النسخ)
     // ==========================================
     function showSuccessPage(customerName, orderID) {
+        
+        // دالة النسخ بنربطها بالـ window عشان تشتغل من الـ HTML المولد
+        window.copyOrderNumber = function() {
+            navigator.clipboard.writeText(orderID).then(() => {
+                const copyBtn = document.getElementById("copyIconBtn");
+                // تغيير الأيقونة لعلامة صح خضراء لتأكيد النسخ
+                copyBtn.innerHTML = '<i class="fa-solid fa-check" style="color: #4BB543;"></i>';
+                // إرجاع الأيقونة لشكلها الطبيعي بعد ثانيتين
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                }, 2000);
+            }).catch(err => console.error('خطأ في النسخ:', err));
+        };
+
         document.querySelector(".checkout-container").innerHTML = `
             <div class="success-wrapper" style="width:100%; display:flex; justify-content:center; align-items:center; min-height: 80vh; animation: fadeIn 0.8s ease;">
                 <div class="success-card" style="text-align:center; background:#fff; padding:60px 40px; border-radius:20px; max-width:500px; box-shadow:0 15px 35px rgba(0,0,0,0.05);">
@@ -74,9 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <h1 style="font-size: 30px; color: #2b1142; margin-bottom: 15px; font-weight: 900; letter-spacing: -1px;">THANK YOU, ${customerName.toUpperCase()}!</h1>
                     <p style="color: #666; font-size: 18px; line-height: 1.6;">تم استلام طلبك بنجاح وجاري تجهيزه الآن.</p>
-                    <div style="margin: 25px 0; padding: 15px; background: #fdfbff; border-radius: 10px; border: 1px dashed #2b1142;">
-                        <span style="color: #2b1142; font-weight: bold;">رقم الطلب: #${orderID}</span>
+                    
+                    <div style="margin: 25px auto; padding: 15px; background: #fdfbff; border-radius: 10px; border: 1px dashed #2b1142; display: flex; align-items: center; justify-content: center; gap: 12px; width: fit-content; min-width: 220px;">
+                        <span style="color: #2b1142; font-weight: bold; font-size: 18px;">رقم الطلب: #${orderID}</span>
+                        <button id="copyIconBtn" onclick="copyOrderNumber()" style="background: none; border: none; cursor: pointer; color: #2b1142; font-size: 20px; padding: 0; transition: 0.3s;" title="نسخ رقم الطلب">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
                     </div>
+
                     <button onclick="window.location.href='home.html'" class="complete-order-btn" style="width: auto; padding: 18px 50px; border-radius: 50px; background: #2b1142; color: #fff; border: none; font-weight: bold; cursor: pointer;">العودة للمتجر</button>
                 </div>
             </div>`;
