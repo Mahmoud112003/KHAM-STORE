@@ -223,7 +223,7 @@ const translations = {
     }
 };
 
-let currentLang = localStorage.getItem('siteLanguage') || 'ar';
+let currentLang = localStorage.getItem('siteLanguage') || 'en';
 
 function getText(key, fallback = '') {
     const langMap = translations[currentLang] || translations.en;
