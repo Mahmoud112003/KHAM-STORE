@@ -24,7 +24,7 @@ if (loginForm) {
     // تحويل الحدث إلى async للتعامل مع طلب الفايربيز أونلاين
     loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        
+
         const btn = loginForm.querySelector("button[type='submit']");
         const originalBtnText = btn ? btn.innerText : "تسجيل الدخول";
 
@@ -53,15 +53,15 @@ if (loginForm) {
 
         } catch (error) {
             console.error("Login Error:", error);
-            
+
             // عرض رسالة خطأ واضحة في حالة فشل البيانات
             if (errorMessage) {
                 if (error.code === "auth/invalid-email" || error.code === "auth/invalid-credential") {
-                    errorMessage.textContent = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+                    errorMessage.textContent = window.getText ? window.getText('invalidLogin') : 'The email or password is incorrect.';
                 } else if (error.code === "auth/network-request-failed") {
-                    errorMessage.textContent = "عفواً، فشل الاتصال بالشبكة. تحقق من الإنترنت.";
+                    errorMessage.textContent = window.getText ? window.getText('networkError') : 'Network request failed. Please check your connection.';
                 } else {
-                    errorMessage.textContent = "حدث خطأ أثناء تسجيل الدخول. حاول مجدداً.";
+                    errorMessage.textContent = window.getText ? window.getText('genericLoginError') : 'An error occurred while signing in. Please try again.';
                 }
             }
         } finally {

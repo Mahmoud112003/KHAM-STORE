@@ -28,7 +28,7 @@ async function renderHomeCollections() {
 
     // تهيئة الـ Grid ومسح الـ Placeholder القديم
     container.className = "home-sections";
-    container.innerHTML = ""; 
+    container.innerHTML = "";
 
     sectionsOrder.forEach(section => {
         const sectionProducts = products.filter(product => {
@@ -77,12 +77,12 @@ async function renderHomeCollections() {
             ` : ''}
             
             <div class="collection-overlay" style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 25px;">
-                <span style="color: #a1a1a1; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px; font-weight: 500; margin-bottom: 4px;">KHAM BRAND</span>
+                <span style="color: #a1a1a1; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px; font-weight: 500; margin-bottom: 4px;">${window.getText ? window.getText('homeBrand') : 'KHAM BRAND'}</span>
                 <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
                     ${section}
                 </h3>
                 <div style="display: inline-flex; align-items: center; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid #fff; width: max-content; padding-bottom: 2px;">
-                    DISCOVER NOW →
+                    ${window.getText ? window.getText('discoverNow') : 'DISCOVER NOW'} →
                 </div>
             </div>
         `;
@@ -94,10 +94,12 @@ async function renderHomeCollections() {
         container.style.display = "block";
         container.innerHTML = `
             <div style="text-align: center; padding: 60px; color: #666; width: 100%;">
-                <p style="font-size: 18px; font-weight: 600;">Coming soon.. KHAM new collections will be launched. Stay tuned!</p>
+                <p style="font-size: 18px; font-weight: 600;">${window.getText ? window.getText('homeComingSoon') : 'Coming soon.. KHAM new collections will be launched. Stay tuned!'}</p>
             </div>`;
     }
 }
+
+window.renderHomeCollections = renderHomeCollections;
 
 // 3. يفضل استخدام DOMContentLoaded بدلاً من load لتبدأ رندرة الأقسام أسرع فور تحميل الـ DOM
 if (document.readyState === "loading") {
@@ -105,3 +107,9 @@ if (document.readyState === "loading") {
 } else {
     renderHomeCollections();
 }
+
+window.addEventListener("languagechange", () => {
+    if (typeof window.renderHomeCollections === "function") {
+        window.renderHomeCollections();
+    }
+});

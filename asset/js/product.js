@@ -8,7 +8,7 @@ async function loadProducts() {
     try {
         // جلب المنتجات مباشرة من الفايربيز
         allProducts = await getProducts();
-        
+
         // تشغيل الفلاتر والأحداث بعد التأكد من وصول البيانات
         applyFilters();
         setupEventListeners();
@@ -24,10 +24,10 @@ function renderProducts(products) {
     if (!grid) return;
     grid.innerHTML = "";
 
-    if (countEl) countEl.innerText = `${products.length} products`;
+    if (countEl) countEl.innerText = `${products.length} ${window.getText ? window.getText('productsCount') : 'products'}`;
 
     if (products.length === 0) {
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">No products found.</div>`;
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">${window.getText ? window.getText('noProducts') : 'No products found.'}</div>`;
         return;
     }
 
@@ -41,7 +41,7 @@ function renderProducts(products) {
         card.innerHTML = `
             <div class="product-img-wrapper">
                 <img src="${image}" alt="${p.name || 'Product'}" loading="lazy">       
-                ${p.status === "out-of-stock" ? `<span class="sold-out-badge">sold out</span>` : ""}
+                ${p.status === "out-of-stock" ? `<span class="sold-out-badge">${window.getText ? window.getText('soldOutBadge') : 'sold out'}</span>` : ""}
             </div>
             <div class="product-details">
                 <h3>${p.name || "KHAM Piece"}</h3>
@@ -64,7 +64,9 @@ function setupEventListeners() {
 
             const currentSortText = document.getElementById("currentSort");
             if (currentSortText) {
-                currentSortText.innerHTML = `${this.innerText} <i class="fa-solid fa-chevron-down"></i>`;
+                const sortLabel = this.getAttribute('data-i18n') || this.getAttribute('data-sort');
+                const translated = sortLabel === 'sortLow' ? (window.getText ? window.getText('sortLow') : this.innerText) : sortLabel === 'sortHigh' ? (window.getText ? window.getText('sortHigh') : this.innerText) : (window.getText ? window.getText('sortAz') : this.innerText);
+                currentSortText.innerHTML = `${translated} <i class="fa-solid fa-chevron-down"></i>`;
             }
             applyFilters();
         });
@@ -135,3 +137,8 @@ function applyFilters() {
 
 // تشغيل جلب البيانات بمجرد تحميل الصفحة
 document.addEventListener("DOMContentLoaded", loadProducts);
+window.addEventListener("languagechange", () => {
+    if (allProducts.length > 0) {
+        applyFilters();
+    }
+});

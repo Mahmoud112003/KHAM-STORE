@@ -165,3 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCartCount();
     }, 500);
 });
+
+window.addEventListener("languagechange", () => {
+    renderCart();
+});

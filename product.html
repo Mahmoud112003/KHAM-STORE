@@ -24,32 +24,35 @@
 
     <section class="products-catalog container">
 
-        <h2 class="catalog-main-title">Products</h2>
+        <h2 class="catalog-main-title" data-i18n="catalogTitle">Products</h2>
         <div class="catalog-toolbar">
             <div class="toolbar-left">
-                <span class="label">Filter:</span>
+                <span class="label" data-i18n="filterLabel">Filter:</span>
                 <div class="custom-dropdown">
-                    <div class="dropdown-trigger">Availability <i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="dropdown-trigger" data-i18n="availabilityLabel">Availability <i
+                            class="fa-solid fa-chevron-down"></i></div>
                     <div class="dropdown-content">
-                        <label><input type="checkbox" class="filter-check" value="in-stock"> In stock</label>
-                        <label><input type="checkbox" class="filter-check" value="out-of-stock"> Sold out</label>
+                        <label><input type="checkbox" class="filter-check" value="in-stock"> <span
+                                data-i18n="inStock">In stock</span></label>
+                        <label><input type="checkbox" class="filter-check" value="out-of-stock"> <span
+                                data-i18n="soldOut">Sold out</span></label>
                     </div>
                 </div>
 
             </div>
 
             <div class="toolbar-right">
-                <span class="label">Sort by:</span>
+                <span class="label" data-i18n="sortBy">Sort by:</span>
                 <div class="custom-dropdown">
-                    <div class="dropdown-trigger" id="currentSort">Alphabetically, A-Z <i
+                    <div class="dropdown-trigger" id="currentSort" data-i18n="sortAz">Alphabetically, A-Z <i
                             class="fa-solid fa-chevron-down"></i></div>
                     <div class="dropdown-content">
-                        <div class="sort-option" data-sort="az">Alphabetically, A-Z</div>
-                        <div class="sort-option" data-sort="price-low">Price, low to high</div>
-                        <div class="sort-option" data-sort="price-high">Price, high to low</div>
+                        <div class="sort-option" data-sort="az" data-i18n="sortAz">Alphabetically, A-Z</div>
+                        <div class="sort-option" data-sort="price-low" data-i18n="sortLow">Price, low to high</div>
+                        <div class="sort-option" data-sort="price-high" data-i18n="sortHigh">Price, high to low</div>
                     </div>
                 </div>
-                <span class="products-count" id="productCount">0 products</span>
+                <span class="products-count" id="productCount" data-i18n="productsCount">0 products</span>
             </div>
         </div>
 
@@ -65,6 +68,7 @@
     <script type="module" src="asset/js/product.js"></script>
     <script type="module" src="asset/js/cart.js"></script>
     <script type="module" src="asset/js/main.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/all.min.js"></script>
 
 </body>

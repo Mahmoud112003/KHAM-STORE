@@ -13,29 +13,29 @@
     <div class="admin-container">
         <div class="dashboard-header">
             <div>
-                <h1>لوحة تحكم KHAM </h1>
-                <p class="dashboard-subtitle">إدارة الأقسام والمنتجات الجديدة</p>
+                <h1 data-i18n="adminTitle">لوحة تحكم KHAM </h1>
+                <p class="dashboard-subtitle" data-i18n="adminSubtitle">إدارة الأقسام والمنتجات الجديدة</p>
             </div>
             <div class="admin-actions">
-                <button onclick="logoutAdmin()" class="logout-btn">خروج</button>
-                <button onclick="clearAllData()" class="clear-btn">مسح البيانات</button>
+                <button onclick="logoutAdmin()" class="logout-btn" data-i18n="logout">خروج</button>
+                <button onclick="clearAllData()" class="clear-btn" data-i18n="clearData">مسح البيانات</button>
             </div>
         </div>
 
         <form id="productForm">
             <div class="form-grid">
                 <div class="form-group">
-                    <label>اسم المنتج</label>
+                    <label data-i18n="productName">اسم المنتج</label>
                     <input type="text" id="adminProductName" required placeholder="مثلاً: Oversized Hoodie">
                 </div>
 
                 <div class="form-group">
-                    <label>السعر (EGP)</label>
+                    <label data-i18n="productPrice">السعر (EGP)</label>
                     <input type="number" id="adminProductPrice" required placeholder="0.00">
                 </div>
 
                 <div class="form-group">
-                    <label>القسم الرئيسي (Collection)</label>
+                    <label data-i18n="mainSection">القسم الرئيسي (Collection)</label>
                     <select id="adminProductSection">
                         <option value="Oversized Hoodie Basic">Oversized Hoodie Basic</option>
                         <option value="Oversized Hoodie Printed">Oversized Hoodie Printed</option>
@@ -47,14 +47,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label>النوع الفرعي (Sub-Category)</label>
+                    <label data-i18n="subCategory">النوع الفرعي (Sub-Category)</label>
                     <select id="adminProductSubCategory">
                         <option value="">اختر النوع (Sub-Category)</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>حالة توفر المنتج</label>
+                    <label data-i18n="availabilityStatus">حالة توفر المنتج</label>
                     <select id="adminProductStatus" required>
                         <option value="in-stock">متوفر (In Stock)</option>
                         <option value="out-of-stock">نفذت الكمية (Sold Out)</option>
@@ -62,18 +62,18 @@
                 </div>
 
                 <div class="form-group">
-                    <label>الألوان (افصل بينها بفاصلة ,)</label>
+                    <label data-i18n="colorsLabel">الألوان (افصل بينها بفاصلة ,)</label>
                     <input type="text" id="adminProductColors" placeholder="أسود, أبيض, بيج">
                 </div>
             </div>
 
             <div class="form-group" style="margin-top: 15px;">
-                <label>وصف المنتج التفصيلي</label>
+                <label data-i18n="descriptionLabel">وصف المنتج التفصيلي</label>
                 <textarea id="adminProductDesc" rows="4" placeholder="اكتب تفاصيل ومميزات القطعة هنا..."></textarea>
             </div>
 
             <div class="form-group" style="margin-top: 15px;">
-                <label style="display: block; margin-bottom: 10px;">المقاسات المتاحة</label>
+                <label style="display: block; margin-bottom: 10px;" data-i18n="sizesLabel">المقاسات المتاحة</label>
                 <div class="sizes-container" style="display: flex; gap: 15px; flex-wrap: wrap;">
                     <label><input type="checkbox" class="size-checkbox" value="S"> S</label>
                     <label><input type="checkbox" class="size-checkbox" value="M"> M</label>
@@ -86,11 +86,11 @@
 
             <div class="form-grid" style="margin-top: 15px;">
                 <div class="form-group">
-                    <label>صور المنتج (يمكنك اختيار أكثر من صورة)</label>
+                    <label data-i18n="imagesLabel">صور المنتج (يمكنك اختيار أكثر من صورة)</label>
                     <input type="file" id="adminProductImages" multiple accept="image/*">
                 </div>
                 <div class="form-group">
-                    <label>دليل المقاسات كصورة (Size Guide Image)</label>
+                    <label data-i18n="sizeGuideLabel">دليل المقاسات كصورة (Size Guide Image)</label>
                     <input type="file" id="adminProductSizeGuide" accept="image/*">
                 </div>
             </div>
@@ -100,13 +100,16 @@
                 <input type="file" id="adminSectionCover" accept="image/*">
             </div>
 
-            <button type="submit" class="save-btn" style="margin-top: 20px;">حفظ المنتج والبيانات</button>
-            <div id="adminMsg" style="display: none; padding: 10px; margin-top: 10px; border-radius: 5px; text-align: center;"></div>
+            <button type="submit" class="save-btn" style="margin-top: 20px;" data-i18n="saveProduct">حفظ المنتج
+                والبيانات</button>
+            <div id="adminMsg"
+                style="display: none; padding: 10px; margin-top: 10px; border-radius: 5px; text-align: center;"></div>
         </form>
 
         <div class="products-header" style="margin-top: 40px;">
             <h2>المنتجات المضافة</h2>
-            <input type="text" id="searchInput" placeholder="بحث باسم المنتج أو القسم...">
+            <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder"
+                placeholder="بحث باسم المنتج أو القسم...">
         </div>
 
         <div class="table-scroll">
@@ -127,6 +130,7 @@
     </div>
 
     <script type="module" src="asset/js/admin.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
 </body>
 
 </html>

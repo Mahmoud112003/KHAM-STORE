@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsContainer.innerHTML = "";
 
         if (cart.length === 0) {
-            itemsContainer.innerHTML = "<p style='text-align:center;'>السلة فارغة</p>";
+            itemsContainer.innerHTML = `<p style='text-align:center;'>${window.getText ? window.getText('cartEmptyMessage') : 'Your cart is empty'}</p>`;
             return;
         }
 
@@ -51,10 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = subtotal + shipping;
         if (summaryContainer) {
             summaryContainer.innerHTML = `
-                <div class="summary-row"><span>Subtotal</span><span>E£${subtotal.toFixed(2)}</span></div>
-                <div class="summary-row"><span>Shipping</span><span>${selectedGov === "" ? "حدد المحافظة" : "E£" + shipping.toFixed(2)}</span></div>
+                <div class="summary-row"><span>${window.getText ? window.getText('subtotal') : 'Subtotal'}</span><span>E£${subtotal.toFixed(2)}</span></div>
+                <div class="summary-row"><span>${window.getText ? window.getText('shipping') : 'Shipping'}</span><span>${selectedGov === "" ? (window.getText ? window.getText('governoratePlaceholder') : 'Select Governorate') : "E£" + shipping.toFixed(2)}</span></div>
                 <div class="summary-row total-price" style="font-size:20px; font-weight:bold; color:#2b1142; border-top:1px solid #ddd; padding-top:15px; margin-top:15px; display:flex; justify-content:space-between;">
-                    <span>Total</span><span>E£${total.toFixed(2)}</span>
+                    <span>${window.getText ? window.getText('total') : 'Total'}</span><span>E£${total.toFixed(2)}</span>
                 </div>`;
         }
     }
@@ -62,13 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (govSelect) govSelect.addEventListener('change', renderCheckout);
     renderCheckout();
 
+    window.addEventListener('languagechange', renderCheckout);
+
     // ==========================================
     // 2. صفحة النجاح (معدلة بإضافة زر النسخ)
     // ==========================================
     function showSuccessPage(customerName, orderID) {
-        
+
         // دالة النسخ بنربطها بالـ window عشان تشتغل من الـ HTML المولد
-        window.copyOrderNumber = function() {
+        window.copyOrderNumber = function () {
             navigator.clipboard.writeText(orderID).then(() => {
                 const copyBtn = document.getElementById("copyIconBtn");
                 // تغيير الأيقونة لعلامة صح خضراء لتأكيد النسخ
@@ -150,14 +152,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // مسح السلة وتحديث عداد السلة في الـ Navbar فوراً
                 localStorage.removeItem("cart");
                 updateCartCount();
-                
+
                 showSuccessPage(firstName, generatedID);
             } catch (error) {
                 console.error(error);
                 // لو حصل مشكلة في الربط بنظهر صفحة النجاح برضه عشان العميل ما يقلقش
                 localStorage.removeItem("cart");
                 updateCartCount();
-                
+
                 showSuccessPage(firstName, generatedID);
             }
         });

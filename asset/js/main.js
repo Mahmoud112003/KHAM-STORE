@@ -7,9 +7,10 @@ fetch("nav.html")
     .then(data => {
         const nav = document.getElementById("nav-placeholder");
         if (nav) nav.innerHTML = data;
-        
+
         // تشغيل دالة تحديث العداد فوراً بعد التأكد من أن الـ Navbar نزل في الـ DOM
         updateCartCount();
+        window.applyPageTranslations?.();
     });
 
 // Load footer from footer.html and insert into placeholder
@@ -18,9 +19,10 @@ fetch("footer.html")
     .then(data => {
         const footer = document.getElementById("footer-placeholder");
         if (footer) footer.innerHTML = data;
-        
+
         // Initialize language selection
         initLanguage();
+        window.applyPageTranslations?.();
     });
 
 // Function to initialize language selection dropdown
@@ -29,30 +31,34 @@ function initLanguage() {
     const langOptions = document.getElementById("langOptions");
     const currentLang = document.getElementById("currentLang");
     const options = document.querySelectorAll(".option");
-    
+
     // Prevent execution if elements not found
     if (!langBtn) return;
-    
+
     // Toggle dropdown on button click
     langBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         langOptions.classList.toggle("open");
     });
-    
+
     // Handle option selection
     options.forEach(option => {
         option.addEventListener("click", () => {
+            const lang = option.getAttribute("data-value") || option.getAttribute("data-lang") || "en";
+            if (window.setLanguage) {
+                window.setLanguage(lang);
+            }
             const text = option.textContent.trim();
-            currentLang.textContent = text;
+            if (currentLang) currentLang.textContent = text;
             // Remove active class from all options
             options.forEach(o => o.classList.remove("active"));
             // Add active class to selected option
             option.classList.add("active");
             // Close dropdown
-            langOptions.classList.remove("open");
+            if (langOptions) langOptions.classList.remove("open");
         });
     });
-    
+
     // Close dropdown when clicking outside
     document.addEventListener("click", () => {
         if (langOptions) langOptions.classList.remove("open");
@@ -60,7 +66,7 @@ function initLanguage() {
 }
 
 // كود تشغيل الـ Hamburger Menu للموبايل
-document.addEventListener("click", function(e) {
+document.addEventListener("click", function (e) {
     const menuToggle = document.querySelector(".menu-toggle");
     const navMenu = document.querySelector(".header .nav");
 
@@ -71,7 +77,7 @@ document.addEventListener("click", function(e) {
     if (e.target.closest(".menu-toggle")) {
         menuToggle.classList.toggle("active");
         navMenu.classList.toggle("open");
-    } 
+    }
     // قفل المنيو لو داس في أي مكان برة المنيو والزرار
     else if (!e.target.closest(".header .nav")) {
         menuToggle.classList.remove("active");

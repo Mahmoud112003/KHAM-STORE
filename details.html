@@ -46,14 +46,14 @@
                 <button id="plusBtn">+</button>
             </div>
 
-            <button id="sizeGuideBtn" class="size-guide-btn">Size Guide</button>
+            <button id="sizeGuideBtn" class="size-guide-btn" data-i18n="sizeGuide">Size Guide</button>
             <div id="sizeGuideBox" class="size-guide-box">
                 <img id="sizeGuideImage" src="">
             </div>
 
             <div class="action-buttons">
-                <button class="btn-cart" onclick="addToCartFromDetails()">Add to Cart</button>
-                <button class="btn-buy" id="buyNowBtn">Buy it now</button>
+                <button class="btn-cart" onclick="addToCartFromDetails()" data-i18n="addToCart">Add to Cart</button>
+                <button class="btn-buy" id="buyNowBtn" data-i18n="buyNow">Buy it now</button>
             </div>
 
             <div class="product-desc">
@@ -65,9 +65,10 @@
     <div id="footer-placeholder"></div>
 
     <script type="module" src="asset/js/store.js"></script>
-    <script type="module"  src="asset/js/cart.js"></script>
+    <script type="module" src="asset/js/cart.js"></script>
     <script type="module" src="asset/js/details.js"></script>
     <script type="module" src="asset/js/main.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/all.min.js"></script>
 </body>
 

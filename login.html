@@ -12,23 +12,24 @@
 <body>
     <div class="login-page">
         <div class="login-card">
-            <h1>Login</h1>
+            <h1 data-i18n="loginTitle">Login</h1>
             <form id="login-form">
                 <div class="form-group">
-                    <label for="login-username">Username</label>
+                    <label for="login-username" data-i18n="loginUsername">Username</label>
                     <input type="text" id="login-username" required placeholder="">
                 </div>
                 <div class="form-group">
-                    <label for="login-password">Password</label>
+                    <label for="login-password" data-i18n="loginPassword">Password</label>
                     <input type="password" id="login-password" required placeholder="Password">
                 </div>
-                <button type="submit" class="btn btn-primary">Login</button>
+                <button type="submit" class="btn btn-primary" data-i18n="loginButton">Login</button>
                 <p class="login-message" id="login-error"></p>
             </form>
         </div>
     </div>
     <script type="module" src="asset/js/store.js"></script>
     <script type="module" src="asset/js/login.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
 </body>
 
 </html>

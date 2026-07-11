@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,22 +21,25 @@
             <form id="checkoutForm">
                 <div class="form-group">
                     <div class="group-header">
-                        <h2>Contact</h2>
+                        <h2 data-i18n="checkoutContact">Contact</h2>
                     </div>
-                    <input type="email" id="email" class="full-width" placeholder="Email" required>
+                    <input type="email" id="email" class="full-width" data-i18n-placeholder="emailPlaceholder"
+                        placeholder="Email" required>
                 </div>
                 <div class="form-group">
-                    <h2>Delivery</h2>
+                    <h2 data-i18n="checkoutDelivery">Delivery</h2>
                     <div class="form-row">
-                        <input type="text" id="firstName" placeholder="First name" required>
-                        <input type="text" id="lastName" placeholder="Last name" required>
+                        <input type="text" id="firstName" data-i18n-placeholder="firstNamePlaceholder"
+                            placeholder="First name" required>
+                        <input type="text" id="lastName" data-i18n-placeholder="lastNamePlaceholder"
+                            placeholder="Last name" required>
                     </div>
-                    <input type="text" id="address" class="full-width"
+                    <input type="text" id="address" class="full-width" data-i18n-placeholder="addressPlaceholder"
                         placeholder="Address (Street, Building, Apartment)" required>
 
                     <div class="form-row">
                         <select id="governorate" required>
-                            <option value="">Select Governorate</option>
+                            <option value="" data-i18n="governoratePlaceholder">Select Governorate</option>
                             <option value="Cairo">القاهرة</option>
                             <option value="Giza">الجيزة</option>
                             <option value="Alexandria">الإسكندرية</option>
@@ -64,25 +68,26 @@
                             <option value="North Sinai">شمال سيناء</option>
                             <option value="Sohag">سوهاج</option>
                         </select>
-                        <input type="tel" id="phone" placeholder="Phone number" required>
+                        <input type="tel" id="phone" data-i18n-placeholder="phonePlaceholder" placeholder="Phone number"
+                            required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <h2>Payment</h2>
+                    <h2 data-i18n="checkoutPayment">Payment</h2>
                     <div class="payment-options">
                         <label class="payment-card active">
                             <input type="radio" name="payment" value="cod" checked>
                             <div class="payment-content">
                                 <div class="radio-custom"></div>
-                                <span class="payment-label"><i class="fa-solid fa-money-bill-wave"></i> Cash on
-                                    Delivery (COD)</span>
+                                <span class="payment-label"><i class="fa-solid fa-money-bill-wave"></i> <span
+                                        data-i18n="codLabel">Cash on Delivery (COD)</span></span>
                             </div>
                         </label>
                     </div>
                 </div>
 
-                <button type="submit" class="complete-order-btn">Complete order</button>
+                <button type="submit" class="complete-order-btn" data-i18n="completeOrder">Complete order</button>
             </form>
         </div>
         <aside class="order-summary-section">
@@ -96,6 +101,7 @@
     <script type="module" src="asset/js/store.js"></script>
     <script type="module" src="asset/js/cart.js"></script>
     <script type="module" src="asset/js/checkout.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/all.min.js"></script>
 </body>
 

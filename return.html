@@ -24,30 +24,32 @@
                 </div>
                 <!-- Form side -->
                 <div class="returns-form-side">
-                    <h2>Return & Exchange</h2>
+                    <h2 data-i18n="returnPageTitle">Return & Exchange</h2>
                     <!-- Order number input -->
                     <div class="input-group">
-                        <label>Order Number</label>
-                        <input type="text" id="orderNumber" placeholder="Enter your order number">
+                        <label data-i18n="returnOrderNumber">Order Number</label>
+                        <input type="text" id="orderNumber" data-i18n-placeholder="returnOrderPlaceholder"
+                            placeholder="Enter your order number">
                     </div>
                     <!-- Email or phone input -->
                     <div class="input-group">
-                        <label>Email or Phone Number</label>
-                        <input type="text" id="phoneNumber" placeholder="Email or phone">
+                        <label data-i18n="returnContact">Email or Phone Number</label>
+                        <input type="text" id="phoneNumber" data-i18n-placeholder="returnContactPlaceholder"
+                            placeholder="Email or phone">
                     </div>
                     <!-- Check order button -->
-                    <button class="check-btn" onclick="sendData()">Check Order</button>
+                    <button class="check-btn" onclick="sendData()" data-i18n="returnButton">Check Order</button>
                     <!-- Message display -->
                     <p id="msg"></p>
                     <!-- Policy text and link -->
                     <p class="policy-text">
-                        Track your order by entering the details.
-                        <a href="#">Our policy</a>
+                        <span data-i18n="returnPolicyText">Track your order by entering the details.</span>
+                        <a href="#" data-i18n="returnPolicyLink">Our policy</a>
                     </p>
                     <!-- Policy acceptance checkbox -->
                     <label class="checkbox-label">
                         <input type="checkbox" id="policyCheck">
-                        I accept the return policy
+                        <span data-i18n="returnAcceptPolicy">I accept the return policy</span>
                     </label>
                 </div>
             </div>
@@ -57,6 +59,7 @@
     <script type="module" src="asset/js/store.js"></script>
     <script type="module" src="asset/js/main.js"></script>
     <script type="module" src="asset/js/return.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/all.min.js"></script>
 </body>
 

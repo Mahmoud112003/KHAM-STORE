@@ -21,14 +21,16 @@
     font-family: 'Poppins', sans-serif;
     list-style: none;
     text-decoration: none;
-    
+
 }
 
 
 body {
     background-color: #dfdcd9;
     color: var(--color-text);
-    line-height: 1.6; 
+    line-height: 1.6;
+    overflow-x: hidden;
+    caret-color: transparent;
 
 }
 
@@ -568,9 +570,9 @@ body {
 }
 
 .thumbs {
-   display: flex;
+    display: flex;
     gap: 12px;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
     justify-content: center;
 }
 
@@ -1459,7 +1461,8 @@ select.error {
 .menu-toggle .bar {
     width: 100%;
     height: 3px;
-    background-color: var(--primary-purple); /* استخدام لون براند خام البنفسجي */
+    background-color: var(--primary-purple);
+    /* استخدام لون براند خام البنفسجي */
     border-radius: 2px;
     transition: all 0.3s ease-in-out;
 }
@@ -1481,14 +1484,16 @@ select.error {
 /* شاشات الموبايل والتابلت */
 @media (max-width: 767px) {
     .menu-toggle {
-        display: flex; /* إظهار الزرار في الموبايل */
+        display: flex;
+        /* إظهار الزرار في الموبايل */
     }
 
     /* تحويل المنيو العادية لقائمة منسدلة أو جانبية */
     .header .nav {
         position: fixed;
         top: 0;
-        right: -100%; /* مخفية برة الشاشة على اليمين */
+        right: -100%;
+        /* مخفية برة الشاشة على اليمين */
         width: 70%;
         height: 100vh;
         background-color: var(--color-white);
@@ -1500,11 +1505,13 @@ select.error {
 
     /* عند فتح المنيو */
     .header .nav.open {
-        right: 0; /* تظهر في الشاشة */
+        right: 0;
+        /* تظهر في الشاشة */
     }
 
     .nav ul {
-        flex-direction: column; /* ترتيب العناصر تحت بعض */
+        flex-direction: column;
+        /* ترتيب العناصر تحت بعض */
         gap: 25px;
     }
 

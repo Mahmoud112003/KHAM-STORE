@@ -10,7 +10,7 @@ let currentProduct = null; // سيتم تعبئته بمجرد وصول البي
 let qty = 1;
 
 // سيتم استخدام هذا المتغير لتخزين اسم اللون النشط بدقة من البيانات مباشرة وليس من الـ DOM
-let selectedColorName = "Standard"; 
+let selectedColorName = "Standard";
 
 function showToast(message) {
     const existingToast = document.querySelector(".kham-toast");
@@ -259,8 +259,8 @@ function addToCartFromDetails() {
     };
 
     addToCart(cartItem);
-    showToast("Added to cart successfully!");
-    
+    showToast(window.getText ? window.getText('addedToCart') : 'Added to cart successfully!');
+
     // إعادة ضبط العداد بعد نجاح الإضافة
     qty = 1;
     const qtyEl = document.getElementById("qty");
@@ -282,13 +282,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (buyNowBtn) {
         buyNowBtn.addEventListener("click", () => {
             if (!currentProduct || currentProduct.status === "out-of-stock") {
-                showToast("This product is sold out!");
+                showToast(window.getText ? window.getText('soldOutMessage') : 'This product is sold out!');
                 return;
             }
 
             const activeSize = document.querySelector(".size-btn.active");
             if (!activeSize) {
-                showToast("Please select a size first!");
+                showToast(window.getText ? window.getText('selectSizeFirst') : 'Please select a size first!');
                 return;
             }
 

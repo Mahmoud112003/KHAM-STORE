@@ -7,14 +7,14 @@ function sendData() {
 
     // Check if policy checkbox is checked
     if (!checkbox.checked) {
-        msg.innerText = "لازم توافق على السياسة ❌";
+        msg.innerText = window.getText ? window.getText('returnPolicyRequired') : 'You must accept the policy ❌';
         msg.style.color = "red";
         return;
     }
 
     // Check if required fields are filled
     if (!orderNumber || !phone) {
-        msg.innerText = "املأ البيانات ❌";
+        msg.innerText = window.getText ? window.getText('returnMissing') : 'Please fill in the required data ❌';
         msg.style.color = "red";
         return;
     }
@@ -32,7 +32,7 @@ function sendData() {
     })
         .then(() => {
             // Success message
-            msg.innerText = "تم إرسال الطلب بنجاح ✅";
+            msg.innerText = window.getText ? window.getText('returnSuccess') : 'Request sent successfully ✅';
             msg.style.color = "green";
             // Clear form fields
             document.getElementById("orderNumber").value = "";
@@ -41,7 +41,7 @@ function sendData() {
         })
         .catch(() => {
             // Error message
-            msg.innerText = "حصل خطأ ❌ حاول مرة تانية";
+            msg.innerText = window.getText ? window.getText('returnError') : 'An error occurred ❌ Please try again';
             msg.style.color = "red";
         });
 }

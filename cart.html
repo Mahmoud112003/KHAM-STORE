@@ -21,28 +21,29 @@
 
     <div class="cart-page container">
         <div id="emptyCart" class="empty-cart" style="display: none;">
-            <h2>Your cart is empty</h2>
-            <a href="product.html" class="continue-btn">Continue shopping</a>
+            <h2 data-i18n="emptyCartTitle">Your cart is empty</h2>
+            <a href="product.html" class="continue-btn" data-i18n="continueShopping">Continue shopping</a>
 
             <div class="login-box">
-                <h3>Have an account?</h3>
-                <a href="#">Log in</a><span> to check out faster.</span>
+                <h3 data-i18n="emptyCartLoginTitle">Have an account?</h3>
+                <a href="#" data-i18n="emptyCartLoginLink">Log in</a><span data-i18n="emptyCartLoginHint"> to check out
+                    faster.</span>
             </div>
         </div>
 
         <div id="cartContent" style="display: none;">
             <div class="cart-header">
-                <h1>Your cart</h1>
-                <a href="product.html">Continue shopping</a>
+                <h1 data-i18n="cartTitle">Your cart</h1>
+                <a href="product.html" data-i18n="continueShopping">Continue shopping</a>
             </div>
 
             <div id="cartItems" class="cart-items">
             </div>
 
             <div class="cart-summary">
-                <h3>Estimated total</h3>
+                <h3 data-i18n="estimatedTotal">Estimated total</h3>
                 <p id="totalPrice" class="total-price-val"></p>
-                <a href="checkout.html" class="checkout-btn">Check out</a>
+                <a href="checkout.html" class="checkout-btn" data-i18n="checkoutButton">Check out</a>
             </div>
         </div>
     </div>
@@ -51,6 +52,7 @@
     <script type="module" src="asset/js/store.js"></script>
     <script type="module" src="asset/js/cart.js"></script>
     <script type="module" src="asset/js/main.js"></script>
+    <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/all.min.js"></script>
 
 </body>
