@@ -135,8 +135,29 @@ function applyFilters() {
     renderProducts(filtered);
 }
 
-// تشغيل جلب البيانات بمجرد تحميل الصفحة
-document.addEventListener("DOMContentLoaded", loadProducts);
+// تشغيل جلب البيانات والأحداث بمجرد تحميل الصفحة
+document.addEventListener("DOMContentLoaded", () => {
+    loadProducts(); // الدالة الأساسية للمشروع
+
+    // منطق تشغيل زر طريقة الغسيل
+    const washingBtn = document.getElementById('washingAccordionBtn');
+    if (washingBtn) {
+        washingBtn.addEventListener('click', function () {
+            const body = document.getElementById('washingAccordionBody');
+            const arrow = document.getElementById('accordionArrow');
+            const isOpen = body.style.maxHeight && body.style.maxHeight !== "0px";
+
+            if (isOpen) {
+                body.style.maxHeight = "0px";
+                arrow.style.transform = "rotate(0deg)";
+            } else {
+                body.style.maxHeight = body.scrollHeight + "px";
+                arrow.style.transform = "rotate(180deg)";
+            }
+        });
+    }
+});
+
 window.addEventListener("languagechange", () => {
     if (allProducts.length > 0) {
         applyFilters();

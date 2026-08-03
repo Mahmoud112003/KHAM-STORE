@@ -146,14 +146,38 @@ body {
 
 
 /* ========================================
-   HERO SECTION
+   HERO SECTION (TICKER ANIMATION)
    ======================================== */
 .hero {
-    text-align: center;
-    margin: 80px 0;
+    margin: 40px 0;
+    overflow: hidden; 
+    color: var(--color-text);
+    padding: 15px 0;
+    white-space: nowrap; 
+}
+
+.ticker-text {
+    display: inline-block;
+    padding-left: 100%; 
+    animation: moveTicker 7s linear infinite; 
     font-size: 28px;
     font-weight: 900;
     letter-spacing: 3px;
+}
+
+/* إيقاف الحركة عند وقوف الماوس عليها */
+.hero:hover .ticker-text {
+    animation-play-state: paused;
+}
+
+/* الحركة من اليمين إلى اليسار */
+@keyframes moveTicker {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
 }
 
 /* ========================================
@@ -524,6 +548,75 @@ body {
     font-weight: 500;
 }
 
+/* =========================================
+   Product Accordion (Washing Instructions)
+   ========================================= */
+
+.product-accordion {
+    margin-bottom: 2rem;
+    border-top: 1px solid rgba(59, 40, 69, 0.1);
+    direction: ltr;
+}
+
+.accordion-item {
+    border-bottom: 1px solid rgba(59, 40, 69, 0.1);
+}
+
+.accordion-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #3b2845;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+}
+
+.accordion-header .header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.accordion-header .header-title svg {
+    width: 22px;
+    height: 22px;
+}
+
+.accordion-arrow {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+}
+
+.accordion-header.active .accordion-arrow {
+    transform: rotate(180deg);
+}
+
+.accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+}
+
+.accordion-content {
+    text-align: center;
+    margin: 0 auto;
+    max-width: 500px;
+    
+}
+
+.accordion-content img {
+    width:100%;
+    border-radius: 8px;
+    margin:0 auto;
+}
+
 .products-count {
     font-size: 13px;
     font-weight: 600;
@@ -696,6 +789,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    margin-bottom: 20px;
 }
 
 .btn-cart {

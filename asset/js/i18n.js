@@ -10,7 +10,7 @@ const translations = {
         footerSupport: 'FOR SUPPORT CONTACT US',
         footerLanguage: 'Language',
         footerRights: '© 2026 KHAM',
-        heroBest: 'Best For The Best',
+        heroBest: 'BACK TO ROOTS',
         homeCollectionsTitle: 'The Collections',
         homeBrand: 'KHAM BRAND',
         discoverNow: 'DISCOVER NOW',
