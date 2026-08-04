@@ -75,7 +75,16 @@ function renderProductData() {
     if (titleEl) titleEl.innerText = currentProduct.name;
     if (priceEl) priceEl.innerText = `${currentProduct.price} EGP`;
     if (descEl) descEl.innerText = currentProduct.description || "No description available.";
-
+// ================= Meta Pixel - ViewContent =================
+if (typeof fbq !== "undefined") {
+    fbq("track", "ViewContent", {
+        content_ids: [currentProduct.id],
+        content_name: currentProduct.name,
+        content_type: "product",
+        value: currentProduct.price,
+        currency: "EGP"
+    });
+}
     // معالجة الصور المتعددة والـ Thumbnails
     const mainImg = document.getElementById("mainImage");
     const thumbsContainer = document.getElementById("thumbs");
@@ -258,9 +267,20 @@ function addToCartFromDetails() {
         qty: qty
     };
 
-    addToCart(cartItem);
-    showToast(window.getText ? window.getText('addedToCart') : 'Added to cart successfully!');
+addToCart(cartItem);
 
+// ================= Meta Pixel - AddToCart =================
+if (typeof fbq !== "undefined") {
+    fbq("track", "AddToCart", {
+        content_ids: [currentProduct.id],
+        content_name: currentProduct.name,
+        content_type: "product",
+        value: currentProduct.price * qty,
+        currency: "EGP"
+    });
+}
+
+showToast(window.getText ? window.getText('addedToCart') : 'Added to cart successfully!');
     // إعادة ضبط العداد بعد نجاح الإضافة
     qty = 1;
     const qtyEl = document.getElementById("qty");

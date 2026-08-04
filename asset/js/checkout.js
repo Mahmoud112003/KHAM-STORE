@@ -61,6 +61,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (govSelect) govSelect.addEventListener('change', renderCheckout);
     renderCheckout();
+    // ================= Meta Pixel - InitiateCheckout =================
+if (typeof fbq !== "undefined") {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+    const totalValue = cart.reduce((sum, item) => {
+        return sum + (item.price * item.qty);
+    }, 0);
+
+    fbq("track", "InitiateCheckout", {
+        num_items: cart.length,
+        value: totalValue,
+        currency: "EGP"
+    });
+}
 
     window.addEventListener('languagechange', renderCheckout);
 
@@ -148,7 +162,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderData)
                 });
+// ================= Meta Pixel - Purchase =================
+if (typeof fbq !== "undefined") {
+    const purchaseValue = parseFloat(totalPrice.replace(/[^\d.]/g, ""));
 
+    fbq("track", "Purchase", {
+        transaction_id: generatedID,
+        value: purchaseValue,
+        currency: "EGP"
+    });
+}
                 // مسح السلة وتحديث عداد السلة في الـ Navbar فوراً
                 localStorage.removeItem("cart");
                 updateCartCount();
