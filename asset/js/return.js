@@ -45,3 +45,5 @@ function sendData() {
             msg.style.color = "red";
         });
 }
+
+window.sendData = sendData;
