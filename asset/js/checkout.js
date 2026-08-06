@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (cart.length === 0) {
             itemsContainer.innerHTML = `<p style='text-align:center;'>${window.getText ? window.getText('cartEmptyMessage') : 'Your cart is empty'}</p>`;
+            if (summaryContainer) summaryContainer.innerHTML = "";
             return;
         }
 
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
         });
 
+        // ------------------ حساب الشحن ------------------
         let shipping = 0;
         const selectedGov = govSelect ? govSelect.value : "";
         if (selectedGov === "Cairo" || selectedGov === "Giza") {
@@ -48,11 +50,27 @@ document.addEventListener('DOMContentLoaded', () => {
             shipping = 100;
         }
 
+        // التعديل: الشحن المجاني التلقائي في صمت
+        const FREE_SHIPPING_THRESHOLD = 1500;
+        let isFreeShipping = false;
+
+        if (subtotal >= FREE_SHIPPING_THRESHOLD) {
+            shipping = 0;
+            isFreeShipping = true;
+        }
+
         const total = subtotal + shipping;
+        // ------------------------------------------------
+
         if (summaryContainer) {
+            // تحديد النص الذي سيظهر في خانة الشحن
+            let shippingDisplay = selectedGov === "" ?
+                (window.getText ? window.getText('governoratePlaceholder') : 'Select Governorate') :
+                (isFreeShipping ? "<span style='color:#28a745; font-weight:bold;'> Free</span>" : "E£" + shipping.toFixed(2));
+
             summaryContainer.innerHTML = `
                 <div class="summary-row"><span>${window.getText ? window.getText('subtotal') : 'Subtotal'}</span><span>E£${subtotal.toFixed(2)}</span></div>
-                <div class="summary-row"><span>${window.getText ? window.getText('shipping') : 'Shipping'}</span><span>${selectedGov === "" ? (window.getText ? window.getText('governoratePlaceholder') : 'Select Governorate') : "E£" + shipping.toFixed(2)}</span></div>
+                <div class="summary-row"><span>${window.getText ? window.getText('shipping') : 'Shipping'}</span><span>${shippingDisplay}</span></div>
                 <div class="summary-row total-price" style="font-size:20px; font-weight:bold; color:#2b1142; border-top:1px solid #ddd; padding-top:15px; margin-top:15px; display:flex; justify-content:space-between;">
                     <span>${window.getText ? window.getText('total') : 'Total'}</span><span>E£${total.toFixed(2)}</span>
                 </div>`;
@@ -61,20 +79,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (govSelect) govSelect.addEventListener('change', renderCheckout);
     renderCheckout();
+
     // ================= Meta Pixel - InitiateCheckout =================
-if (typeof fbq !== "undefined") {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    if (typeof fbq !== "undefined") {
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
-    const totalValue = cart.reduce((sum, item) => {
-        return sum + (item.price * item.qty);
-    }, 0);
+        const totalValue = cart.reduce((sum, item) => {
+            return sum + (item.price * item.qty);
+        }, 0);
 
-    fbq("track", "InitiateCheckout", {
-        num_items: cart.length,
-        value: totalValue,
-        currency: "EGP"
-    });
-}
+        fbq("track", "InitiateCheckout", {
+            num_items: cart.length,
+            value: totalValue,
+            currency: "EGP"
+        });
+    }
 
     window.addEventListener('languagechange', renderCheckout);
 
@@ -162,16 +181,18 @@ if (typeof fbq !== "undefined") {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderData)
                 });
-// ================= Meta Pixel - Purchase =================
-if (typeof fbq !== "undefined") {
-    const purchaseValue = parseFloat(totalPrice.replace(/[^\d.]/g, ""));
 
-    fbq("track", "Purchase", {
-        transaction_id: generatedID,
-        value: purchaseValue,
-        currency: "EGP"
-    });
-}
+                // ================= Meta Pixel - Purchase =================
+                if (typeof fbq !== "undefined") {
+                    const purchaseValue = parseFloat(totalPrice.replace(/[^\d.]/g, ""));
+
+                    fbq("track", "Purchase", {
+                        transaction_id: generatedID,
+                        value: purchaseValue,
+                        currency: "EGP"
+                    });
+                }
+
                 // مسح السلة وتحديث عداد السلة في الـ Navbar فوراً
                 localStorage.removeItem("cart");
                 updateCartCount();
