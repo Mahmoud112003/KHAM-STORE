@@ -121,7 +121,7 @@ const translations = {
         footerSupport: 'للدعم تواصل معنا',
         footerLanguage: 'اللغة',
         footerRights: '© 2026 KHAM',
-        heroBest: 'الأفضل للأفضل',
+        heroBest: 'الرجوع للأصل',
         homeCollectionsTitle: 'المجموعات',
         homeBrand: 'ماركة KHAM',
         discoverNow: 'اكتشف الآن',
