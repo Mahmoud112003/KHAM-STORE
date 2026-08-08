@@ -94,6 +94,25 @@ document.addEventListener('DOMContentLoaded', () => {
             currency: "EGP"
         });
     }
+    // ================= Google Analytics - Begin Checkout =================
+    if (typeof gtag !== "undefined") {
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const totalValue = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        
+        const gaItems = cart.map(i => ({
+            item_id: i.productId || i.id,
+            item_name: i.name,
+            price: i.price,
+            quantity: i.qty,
+            item_variant: (i.color || 'Def') + ' / ' + (i.size || 'Std')
+        }));
+
+        gtag('event', 'begin_checkout', {
+            currency: 'EGP',
+            value: totalValue,
+            items: gaItems
+        });
+    }
 
     window.addEventListener('languagechange', renderCheckout);
 

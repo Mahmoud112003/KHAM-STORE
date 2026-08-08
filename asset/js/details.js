@@ -279,6 +279,20 @@ if (typeof fbq !== "undefined") {
         currency: "EGP"
     });
 }
+// ================= Google Analytics - AddToCart =================
+if (typeof gtag !== "undefined") {
+    gtag('event', 'add_to_cart', {
+        currency: 'EGP',
+        value: currentProduct.price * qty,
+        items: [{
+            item_id: currentProduct.id,
+            item_name: currentProduct.name,
+            price: currentProduct.price,
+            quantity: qty,
+            item_variant: selectedColorName + ' / ' + activeSize.innerText
+        }]
+    });
+}
 
 showToast(window.getText ? window.getText('addedToCart') : 'Added to cart successfully!');
     // إعادة ضبط العداد بعد نجاح الإضافة
