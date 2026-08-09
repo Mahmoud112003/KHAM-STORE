@@ -84,3 +84,14 @@ document.addEventListener("click", function (e) {
         navMenu.classList.remove("open");
     }
 });
+
+
+// ================= إخفاء شاشة التحميل =================
+window.addEventListener('load', function() {
+    const loader = document.getElementById('kham-loader');
+    if (loader) {
+        setTimeout(() => {
+            loader.classList.add('kham-loader-hidden');
+        }, 500); // نص ثانية تأخير عشان نضمن إن الصور ظهرت
+    }
+});
