@@ -1,5 +1,5 @@
 // 1. استيراد دالة جلب المنتجات من ملف الـ store
-import { getProducts } from './store.js';
+import { getProducts, isProductCompletelySoldOut } from './store.js';
 
 let allProducts = [];
 
@@ -34,6 +34,7 @@ function renderProducts(products) {
     products.forEach(p => {
         const image = p.images?.[0] || "asset/images/placeholder.png";
         const priceValue = parseFloat(p.price) || 0;
+        const isSoldOut = isProductCompletelySoldOut(p);
 
         const card = document.createElement("div");
         card.className = "product-card";
@@ -41,7 +42,7 @@ function renderProducts(products) {
         card.innerHTML = `
             <div class="product-img-wrapper">
                 <img src="${image}" alt="${p.name || 'Product'}" loading="lazy">       
-                ${p.status === "out-of-stock" ? `<span class="sold-out-badge">${window.getText ? window.getText('soldOutBadge') : 'sold out'}</span>` : ""}
+                ${isSoldOut ? `<span class="sold-out-badge">${window.getText ? window.getText('soldOutBadge') : 'sold out'}</span>` : ""}
             </div>
             <div class="product-details">
                 <h3>${p.name || "KHAM Piece"}</h3>
@@ -117,8 +118,8 @@ function applyFilters() {
     const inStock = document.querySelector(".filter-check[value='in-stock']")?.checked;
     const outStock = document.querySelector(".filter-check[value='out-of-stock']")?.checked;
 
-    if (inStock && !outStock) filtered = filtered.filter(p => p.status === "in-stock");
-    else if (outStock && !inStock) filtered = filtered.filter(p => p.status === "out-of-stock");
+    if (inStock && !outStock) filtered = filtered.filter(p => !isProductCompletelySoldOut(p));
+    else if (outStock && !inStock) filtered = filtered.filter(isProductCompletelySoldOut);
 
     // منطق السعر والترتيب
     const activeSortBtn = document.querySelector(".sort-option.active");

@@ -1,5 +1,7 @@
 import { db } from './firebase-config.js';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { DEFAULT_ANNOUNCEMENT_SETTINGS, isSafeAnnouncementColor, loadAnnouncementSettings, saveAnnouncementSettings } from './announcement.js';
+import { isProductCompletelySoldOut } from './store.js';
 
 if (!localStorage.getItem("adminLoggedIn")) {
     window.location.href = "login.html";
@@ -15,6 +17,292 @@ const tableBody = document.getElementById("productsTableBody");
 const searchInput = document.getElementById("searchInput");
 const sectionSelect = document.getElementById("adminProductSection");
 const subCategorySelect = document.getElementById("adminProductSubCategory");
+const productColorList = document.getElementById("productColorList");
+const addProductColorButton = document.getElementById("addProductColor");
+const announcementForm = document.getElementById("announcementForm");
+const announcementEnabled = document.getElementById("announcementEnabled");
+const announcementText = document.getElementById("announcementText");
+const announcementBackgroundColor = document.getElementById("announcementBackgroundColor");
+const announcementTextColor = document.getElementById("announcementTextColor");
+const COLOR_HEX_PATTERN = /^#[0-9a-f]{6}$/i;
+const LEGACY_COLOR_CODE_MAP = {
+    "أسود": "#000000", black: "#000000",
+    "أبيض": "#ffffff", white: "#ffffff",
+    "أصفر": "#ffeb3b", yellow: "#ffeb3b",
+    "أحمر": "#f44336", red: "#f44336",
+    "أزرق": "#2196f3", blue: "#2196f3",
+    "أخضر": "#4caf50", green: "#4caf50",
+    "رمادي": "#9e9e9e", grey: "#9e9e9e", gray: "#9e9e9e",
+    "كحلي": "#001f3f", navy: "#001f3f",
+    "بيج": "#f5f5dc", beige: "#f5f5dc",
+    "بني": "#795548", brown: "#795548",
+    "برتقالي": "#ff9800", orange: "#ff9800",
+    "وردي": "#e91e63", pink: "#e91e63",
+    "بنفسجي": "#9c27b0", purple: "#9c27b0",
+    "زيتوني": "#556b2f", olive: "#556b2f"
+};
+let colorDrafts = [];
+let nextColorDraftId = 1;
+
+function getAdminText(key, fallback) {
+    return window.getText ? window.getText(key, fallback) : fallback;
+}
+
+function restoreProductSubmitButton(button) {
+    if (!button) return;
+    button.innerText = editMode
+        ? getAdminText("updateProduct", "Update current product")
+        : getAdminText("saveProduct", "Save product and data");
+}
+
+function isSupportedProductImage(source) {
+    return typeof source === "string" && (
+        /^data:image\/[a-z0-9.+-]+;base64,/i.test(source) ||
+        /^https?:\/\//i.test(source) ||
+        /^(?:\.\/|\/)?asset\/[a-z0-9_./-]+$/i.test(source)
+    );
+}
+
+function isInventoryMap(value) {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function getSelectedProductSizes() {
+    return Array.from(document.querySelectorAll(".size-checkbox:checked"), checkbox => checkbox.value);
+}
+
+function normalizeProductColors(colors) {
+    if (!Array.isArray(colors)) return [];
+
+    return colors.map(color => {
+        const name = typeof color === "string" ? color.trim() : String(color?.name || "").trim();
+        if (!name) return null;
+
+        const candidateCode = typeof color === "string" && COLOR_HEX_PATTERN.test(color)
+            ? color
+            : color?.code || color?.value;
+        const code = COLOR_HEX_PATTERN.test(candidateCode || "")
+            ? candidateCode
+            : LEGACY_COLOR_CODE_MAP[name.toLowerCase()] || LEGACY_COLOR_CODE_MAP[name] || "#cccccc";
+
+        const inventoryEnabled = isInventoryMap(color?.inventory);
+        return {
+            id: nextColorDraftId++,
+            name,
+            code,
+            images: Array.isArray(color?.images) ? color.images.filter(isSupportedProductImage) : [],
+            inventoryEnabled,
+            inventoryLocked: inventoryEnabled,
+            inventory: inventoryEnabled ? { ...color.inventory } : {},
+            files: [],
+            previewUrls: []
+        };
+    }).filter(Boolean);
+}
+
+function createColorField(labelText, control) {
+    const group = document.createElement("div");
+    group.className = "form-group";
+    const label = document.createElement("label");
+    label.textContent = labelText;
+    label.htmlFor = control.id;
+    group.append(label, control);
+    return group;
+}
+
+function renderColorImages(card, draft) {
+    draft.previewUrls.forEach(url => URL.revokeObjectURL(url));
+    draft.previewUrls = [];
+
+    const list = card.querySelector(".color-image-list");
+    list.innerHTML = "";
+
+    const addImageItem = (source, index, pending) => {
+        const item = document.createElement("div");
+        item.className = "color-image-item";
+        const image = document.createElement("img");
+        image.src = source;
+        image.alt = `${draft.name || getAdminText("colorName", "Color name")} ${index + 1}`;
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-color-image-btn";
+        removeButton.textContent = getAdminText("removeImage", "Remove image");
+        removeButton.addEventListener("click", () => {
+            if (pending) draft.files.splice(index, 1);
+            else draft.images.splice(index, 1);
+            renderColorImages(card, draft);
+        });
+        item.append(image, removeButton);
+        list.appendChild(item);
+    };
+
+    draft.images.forEach((source, index) => addImageItem(source, index, false));
+    draft.files.forEach((file, index) => {
+        const previewUrl = URL.createObjectURL(file);
+        draft.previewUrls.push(previewUrl);
+        addImageItem(previewUrl, index, true);
+    });
+}
+
+function renderColorInventory(card, draft) {
+    if (draft.inventoryEnabled) {
+        draft.inventory ||= {};
+        getSelectedProductSizes().forEach(size => {
+            if (!Object.prototype.hasOwnProperty.call(draft.inventory, size)) draft.inventory[size] = 0;
+        });
+    }
+
+    const section = document.createElement("section");
+    section.className = "color-inventory-editor";
+    const toggleLabel = document.createElement("label");
+    toggleLabel.className = "color-inventory-toggle";
+    const toggle = document.createElement("input");
+    toggle.type = "checkbox";
+    toggle.id = `trackInventory-${draft.id}`;
+    toggle.checked = draft.inventoryEnabled;
+    toggle.disabled = draft.inventoryLocked;
+    const toggleText = document.createElement("span");
+    toggleText.textContent = getAdminText("trackInventoryBySize", "Track inventory by size");
+    toggleLabel.append(toggle, toggleText);
+    section.appendChild(toggleLabel);
+
+    const quantityFields = document.createElement("div");
+    quantityFields.className = "color-inventory-fields";
+    quantityFields.hidden = !draft.inventoryEnabled;
+
+    if (draft.inventoryEnabled) {
+        getSelectedProductSizes().forEach(size => {
+            const row = document.createElement("div");
+            row.className = "color-inventory-row";
+            const quantityInput = document.createElement("input");
+            quantityInput.type = "number";
+            quantityInput.id = `inventory-${draft.id}-${size}`;
+            quantityInput.min = "0";
+            quantityInput.step = "1";
+            quantityInput.required = true;
+            const currentQuantity = draft.inventory[size];
+            quantityInput.value = Number.isSafeInteger(currentQuantity) && currentQuantity >= 0
+                ? String(currentQuantity)
+                : "";
+            quantityInput.defaultValue = quantityInput.value;
+            quantityInput.addEventListener("input", () => {
+                draft.inventory[size] = quantityInput.value === "" ? "" : Number(quantityInput.value);
+            });
+            row.appendChild(createColorField(size, quantityInput));
+            quantityFields.appendChild(row);
+        });
+    }
+    section.appendChild(quantityFields);
+    card.appendChild(section);
+
+    toggle.addEventListener("change", () => {
+        if (!toggle.checked) return;
+        draft.inventoryEnabled = true;
+        draft.inventoryLocked = true;
+        draft.inventory ||= {};
+        getSelectedProductSizes().forEach(size => {
+            if (!Object.prototype.hasOwnProperty.call(draft.inventory, size)) draft.inventory[size] = 0;
+        });
+        renderProductColors();
+    });
+}
+
+function renderProductColors() {
+    if (!productColorList) return;
+    productColorList.innerHTML = "";
+
+    if (colorDrafts.length === 0) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.textContent = getAdminText("noProductColors", "No colors added.");
+        productColorList.appendChild(emptyMessage);
+        return;
+    }
+
+    colorDrafts.forEach(draft => {
+        if (draft.inventoryEnabled) {
+            draft.inventory ||= {};
+            getSelectedProductSizes().forEach(size => {
+                if (!Object.prototype.hasOwnProperty.call(draft.inventory, size)) draft.inventory[size] = 0;
+            });
+        }
+
+        const card = document.createElement("fieldset");
+        card.className = "product-color-card";
+        const legend = document.createElement("legend");
+        legend.textContent = draft.name || getAdminText("colorName", "Color name");
+        card.appendChild(legend);
+
+        const header = document.createElement("div");
+        header.className = "product-color-card-header";
+        const removeColorButton = document.createElement("button");
+        removeColorButton.type = "button";
+        removeColorButton.className = "remove-product-color-btn";
+        removeColorButton.textContent = getAdminText("removeColor", "Remove color");
+        removeColorButton.addEventListener("click", () => {
+            draft.previewUrls.forEach(url => URL.revokeObjectURL(url));
+            colorDrafts = colorDrafts.filter(color => color.id !== draft.id);
+            renderProductColors();
+        });
+        header.appendChild(removeColorButton);
+        card.appendChild(header);
+
+        const fields = document.createElement("div");
+        fields.className = "product-color-fields";
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.id = `productColorName-${draft.id}`;
+        nameInput.value = draft.name;
+        nameInput.maxLength = 40;
+        nameInput.addEventListener("input", () => {
+            draft.name = nameInput.value;
+            legend.textContent = draft.name || getAdminText("colorName", "Color name");
+        });
+
+        const codeInput = document.createElement("input");
+        codeInput.type = "color";
+        codeInput.id = `productColorCode-${draft.id}`;
+        codeInput.value = draft.code;
+        codeInput.defaultValue = draft.code;
+        codeInput.addEventListener("input", () => { draft.code = codeInput.value; });
+
+        fields.append(
+            createColorField(getAdminText("colorName", "Color name"), nameInput),
+            createColorField(getAdminText("colorValue", "Color value"), codeInput)
+        );
+        card.appendChild(fields);
+
+        const imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.id = `productColorImages-${draft.id}`;
+        imageInput.accept = "image/*";
+        imageInput.multiple = true;
+        imageInput.addEventListener("change", () => {
+            draft.files = Array.from(imageInput.files || []);
+            renderColorImages(card, draft);
+        });
+        card.appendChild(createColorField(getAdminText("colorImages", "Images for this color"), imageInput));
+
+        const imageList = document.createElement("div");
+        imageList.className = "color-image-list";
+        card.appendChild(imageList);
+        productColorList.appendChild(card);
+        renderColorImages(card, draft);
+        renderColorInventory(card, draft);
+    });
+}
+
+addProductColorButton?.addEventListener("click", () => {
+    const inventory = Object.fromEntries(getSelectedProductSizes().map(size => [size, 0]));
+    colorDrafts.push({ id: nextColorDraftId++, name: "", code: "#000000", images: [], inventoryEnabled: true, inventoryLocked: true, inventory, files: [], previewUrls: [] });
+    renderProductColors();
+    productColorList.querySelector(".product-color-card:last-child input[type='text']")?.focus();
+});
+
+document.querySelectorAll(".size-checkbox").forEach(checkbox => {
+    checkbox.addEventListener("change", renderProductColors);
+});
+
+renderProductColors();
 
 
 function updateSubCategories() {
@@ -119,46 +407,81 @@ if (form) {
 
             // استخراج المقاسات والألوان المكتوبة
             const sizes = Array.from(document.querySelectorAll(".size-checkbox:checked")).map(cb => cb.value);
-            const colorInput = document.getElementById("adminProductColors");
-            const rawColors = colorInput ? colorInput.value.split(",").map(c => c.trim()).filter(Boolean) : [];
+            const colors = [];
+            const colorNames = new Set();
+            for (const draft of colorDrafts) {
+                const name = draft.name.trim();
+                const normalizedName = name.toLocaleLowerCase();
 
-            // ماطحة الألوان من العربية الإنجليزية إلى Hex
-            const colorMap = {
-                "أسود": "#000000", "black": "#000000",
-                "أبيض": "#ffffff", "white": "#ffffff",
-                "أصفر": "#ffeb3b", "yellow": "#ffeb3b",
-                "أحمر": "#f44336", "red": "#f44336",
-                "أزرق": "#2196f3", "blue": "#2196f3",
-                "أخضر": "#4caf50", "green": "#4caf50",
-                "رمادي": "#9e9e9e", "grey": "#9e9e9e", "gray": "#9e9e9e",
-                "كحلي": "#001f3f", "navy": "#001f3f",
-                "بيج": "#f5f5dc", "beige": "#f5f5dc",
-                "بني": "#795548", "brown": "#795548",
-                "برتقالي": "#ff9800", "orange": "#ff9800",
-                "وردي": "#e91e63", "pink": "#e91e63",
-                "بنفسجي": "#9c27b0", "purple": "#9c27b0",
-                "زيتوني": "#556b2f", "olive": "#556b2f"
-            };
+                if (!name) {
+                    showAdminMsg(getAdminText("colorNameRequired", "Enter a name for every color."), "danger");
+                    restoreProductSubmitButton(submitButton);
+                    document.getElementById(`productColorName-${draft.id}`)?.focus();
+                    return;
+                }
+                if (colorNames.has(normalizedName)) {
+                    showAdminMsg(getAdminText("duplicateColorName", "Color names must be unique."), "danger");
+                    restoreProductSubmitButton(submitButton);
+                    document.getElementById(`productColorName-${draft.id}`)?.focus();
+                    return;
+                }
+                if (!COLOR_HEX_PATTERN.test(draft.code)) {
+                    showAdminMsg(getAdminText("invalidColorValue", "Choose a valid HEX color."), "danger");
+                    restoreProductSubmitButton(submitButton);
+                    return;
+                }
+                if (draft.files.some(file => !file.type.startsWith("image/"))) {
+                    showAdminMsg(getAdminText("invalidColorImage", "Choose image files only."), "danger");
+                    restoreProductSubmitButton(submitButton);
+                    return;
+                }
 
-            const colors = rawColors.map(c => {
-                const nameLower = c.toLowerCase();
-                const detectedCode = colorMap[nameLower] || colorMap[c] || (c.startsWith("#") ? c : "#cccccc");
-                return { name: c, code: detectedCode };
-            });
+                const inventory = { ...draft.inventory };
+                if (draft.inventoryEnabled) {
+                    for (const size of sizes) {
+                        const quantity = inventory[size];
+                        if (!Number.isSafeInteger(quantity) || quantity < 0) {
+                            showAdminMsg(getAdminText("invalidInventoryQuantity", "Enter a whole quantity of zero or more for every active size."), "danger");
+                            document.getElementById(`inventory-${draft.id}-${size}`)?.focus();
+                            restoreProductSubmitButton(submitButton);
+                            return;
+                        }
+                    }
+                }
+
+                colorNames.add(normalizedName);
+                const images = [...draft.images];
+                for (const file of draft.files) {
+                    images.push(await compressImage(file));
+                }
+                colors.push({
+                    name,
+                    code: draft.code.toUpperCase(),
+                    images,
+                    ...(draft.inventoryEnabled ? { inventory } : {})
+                });
+            }
+
+            const selectedStatus = document.getElementById("adminProductStatus")?.value || "in-stock";
+            const inventoryStatus = colors.some(color => isInventoryMap(color.inventory))
+                ? (isProductCompletelySoldOut({ status: selectedStatus, sizes, colors }) ? "out-of-stock" : "in-stock")
+                : selectedStatus;
 
             const productData = {
                 name: document.getElementById("adminProductName").value.trim(),
                 price: parseFloat(document.getElementById("adminProductPrice").value) || 0,
                 section: sectionSelect ? sectionSelect.value : "Oversized Hoodie Basic",
                 subCategory: subCategorySelect ? subCategorySelect.value : "",
-                status: document.getElementById("adminProductStatus") ? document.getElementById("adminProductStatus").value : "in-stock",
+                status: inventoryStatus,
                 description: document.getElementById("adminProductDesc") ? document.getElementById("adminProductDesc").value.trim() : "",
                 sizes: sizes,
-                colors: colors.length > 0 ? colors : [{ name: "Standard", code: "#000000" }],
+                colors,
                 images: imageBase64List.length > 0 ? imageBase64List : ["asset/images/placeholder.png"],
                 sizeGuide: sizeGuideBase64,
                 sectionCover: sectionCoverBase64,
-                createdAt: new Date().toISOString()
+                createdAt: editMode && editingId
+                    ? allProductsCache.find(product => product.id === editingId)?.createdAt || new Date().toISOString()
+                    : new Date().toISOString()
             };
 
             if (editMode && editingId) {
@@ -174,6 +497,9 @@ if (form) {
             form.reset();
             editMode = false;
             editingId = null;
+            colorDrafts.forEach(color => color.previewUrls.forEach(url => URL.revokeObjectURL(url)));
+            colorDrafts = [];
+            renderProductColors();
             if (submitButton) submitButton.innerText = "حفظ المنتج والبيانات";
 
             // إعادة ضبط قائمة الـ Sub-Category بعد مسح الفورم
@@ -196,7 +522,7 @@ async function loadAdminProductsTable(explicitList = null) {
     tableBody.innerHTML = "";
 
     let list = explicitList;
-    
+
     // لو مفيش ليستة مبعوتة للبحث، هنجيب من الفاير بيز
     if (!list) {
         try {
@@ -217,13 +543,14 @@ async function loadAdminProductsTable(explicitList = null) {
     list.forEach(p => {
         const mainImg = p.images?.[0] || "asset/images/placeholder.png";
         const priceValue = parseFloat(p.price) || 0;
+        const isSoldOut = isProductCompletelySoldOut(p);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td><img src="${mainImg}" loading="lazy" style="width:50px; height:50px; object-fit:cover; border-radius:8px;"></td>
             <td><strong>${p.name}</strong></td>
             <td>${p.section} ${p.subCategory ? `- ${p.subCategory}` : ''}</td>
-            <td><span class="badge ${p.status}">${p.status === 'in-stock' ? 'متوفر' : 'نفذت الكمية'}</span></td>
+            <td><span class="badge ${isSoldOut ? 'out-of-stock' : 'in-stock'}">${isSoldOut ? 'نفذت الكمية' : 'متوفر'}</span></td>
             <td>${priceValue.toFixed(2)} EGP</td>
             <td>
                 <button onclick="editProductAdmin('${p.id}')" style="background:#ffc107; color:#000; padding:5px 10px; border:none; border-radius:4px; cursor:pointer; margin-right:4px;">تعديل</button>
@@ -255,9 +582,9 @@ window.editProductAdmin = function (id) {
         cb.checked = p.sizes ? p.sizes.includes(cb.value) : false;
     });
 
-    if (document.getElementById("adminProductColors")) {
-        document.getElementById("adminProductColors").value = p.colors ? p.colors.map(c => c.name).join(", ") : "";
-    }
+    colorDrafts.forEach(color => color.previewUrls.forEach(url => URL.revokeObjectURL(url)));
+    colorDrafts = normalizeProductColors(p.colors);
+    renderProductColors();
 
     const submitButton = form.querySelector(".save-btn");
     if (submitButton) submitButton.innerText = "تحديث المنتج الحالي";
@@ -292,6 +619,56 @@ function showAdminMsg(text, type) {
         msg.style.color = "#ff4d4d";
     }
     setTimeout(() => { msg.style.display = "none"; }, 4000);
+}
+
+async function loadAnnouncementForm() {
+    if (!announcementForm) return;
+
+    try {
+        const settings = await loadAnnouncementSettings() || DEFAULT_ANNOUNCEMENT_SETTINGS;
+        announcementEnabled.checked = settings.enabled;
+        announcementText.value = settings.text;
+        announcementBackgroundColor.value = settings.backgroundColor;
+        announcementTextColor.value = settings.textColor;
+    } catch (error) {
+        console.error("Error loading announcement settings:", error);
+        showAdminMsg("Failed to load announcement settings.", "danger");
+    }
+}
+
+if (announcementForm) {
+    announcementForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const text = announcementText.value.trim();
+        const enabled = announcementEnabled.checked;
+        const backgroundColor = announcementBackgroundColor.value;
+        const textColor = announcementTextColor.value;
+
+        if (enabled && !text) {
+            showAdminMsg("Please enter announcement text.", "danger");
+            announcementText.focus();
+            return;
+        }
+
+        if (!isSafeAnnouncementColor(backgroundColor) || !isSafeAnnouncementColor(textColor)) {
+            showAdminMsg("Please choose valid announcement colors.", "danger");
+            return;
+        }
+
+        const saveButton = announcementForm.querySelector("button[type='submit']");
+        if (saveButton) saveButton.disabled = true;
+
+        try {
+            await saveAnnouncementSettings({ enabled, text, backgroundColor, textColor });
+            showAdminMsg("Announcement saved successfully.", "success");
+        } catch (error) {
+            console.error("Error saving announcement settings:", error);
+            showAdminMsg("Failed to save announcement. Please try again.", "danger");
+        } finally {
+            if (saveButton) saveButton.disabled = false;
+        }
+    });
 }
 
 // البحث الفوري
@@ -335,28 +712,12 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSubCategories();
     }
     loadAdminProductsTable();
+    loadAnnouncementForm();
 });
 
 // 11. دالة سحرية
 async function autoFixOldProductsColors() {
     if (allProductsCache.length === 0) return;
-
-    const colorMap = {
-        "أسود": "#000000", "black": "#000000",
-        "أبيض": "#ffffff", "white": "#ffffff",
-        "أصفر": "#ffeb3b", "yellow": "#ffeb3b",
-        "أحمر": "#f44336", "red": "#f44336",
-        "أزرق": "#2196f3", "blue": "#2196f3",
-        "أخضر": "#4caf50", "green": "#4caf50",
-        "رمادي": "#9e9e9e", "grey": "#9e9e9e", "gray": "#9e9e9e",
-        "كحلي": "#001f3f", "navy": "#001f3f",
-        "بيج": "#f5f5dc", "beige": "#f5f5dc",
-        "بني": "#795548", "brown": "#795548",
-        "برتقالي": "#ff9800", "orange": "#ff9800",
-        "وردي": "#e91e63", "pink": "#e91e63",
-        "بنفسجي": "#9c27b0", "purple": "#9c27b0",
-        "زيتوني": "#556b2f", "olive": "#556b2f"
-    };
 
     let updatedAny = false;
 
@@ -364,14 +725,15 @@ async function autoFixOldProductsColors() {
         if (p.colors && Array.from(p.colors).length > 0) {
             let itemChanged = false;
             const fixedColors = p.colors.map(c => {
-                const nameLower = c.name.toLowerCase().trim();
-                const correctCode = colorMap[nameLower] || colorMap[c.name] || (c.name.startsWith("#") ? c.name : "#cccccc");
+                const colorName = typeof c === "string" ? c : String(c?.name || "");
+                const nameLower = colorName.toLowerCase().trim();
+                const correctCode = LEGACY_COLOR_CODE_MAP[nameLower] || LEGACY_COLOR_CODE_MAP[colorName] || (COLOR_HEX_PATTERN.test(colorName) ? colorName : "#cccccc");
 
                 // لو الكود المتسجل حالياً غلط أو أبيض افتراضي وهو مش لون أبيض، نصلحه
-                if (c.code !== correctCode && (c.code === "#ffffff" && nameLower !== "أبيض" && nameLower !== "white")) {
+                if (typeof c === "object" && c && c.code !== correctCode && (c.code === "#ffffff" && nameLower !== "أبيض" && nameLower !== "white")) {
                     itemChanged = true;
                     updatedAny = true;
-                    return { name: c.name, code: correctCode };
+                    return { ...c, code: correctCode };
                 }
                 return c;
             });

@@ -1,5 +1,6 @@
 // 1. استيراد دالة جلب منتج واحد بالـ ID ودالة الـ Cart من ملف الـ store
-import { getProductById, addToCart } from './store.js';
+import { getProductById, addToCart, showToast } from './store.js';
+import { trackViewContent, trackAddToCart } from './analytics.js';
 
 function getQueryParam(name) {
     return new URLSearchParams(window.location.search).get(name);
@@ -11,29 +12,132 @@ let qty = 1;
 
 // سيتم استخدام هذا المتغير لتخزين اسم اللون النشط بدقة من البيانات مباشرة وليس من الـ DOM
 let selectedColorName = "Standard";
+const COLOR_HEX_PATTERN = /^#[0-9a-f]{6}$/i;
+const COLOR_CODE_MAP = {
+    black: "#000000", white: "#ffffff", navy: "#001f3f", grey: "#9e9e9e", gray: "#9e9e9e",
+    red: "#f44336", blue: "#2196f3", green: "#4caf50", yellow: "#ffeb3b", beige: "#f5f5dc"
+};
 
-function showToast(message) {
-    const existingToast = document.querySelector(".kham-toast");
-    if (existingToast) existingToast.remove();
+function isSupportedGalleryImage(source) {
+    return typeof source === "string" && (
+        /^data:image\/[a-z0-9.+-]+;base64,/i.test(source) ||
+        /^https?:\/\//i.test(source) ||
+        /^(?:\.\/|\/)?asset\/[a-z0-9_./-]+$/i.test(source)
+    );
+}
 
-    const toast = document.createElement("div");
-    toast.className = "kham-toast";
-    toast.innerHTML = `
-        <div class="toast-content">
-            <i class="fa-solid fa-circle-check"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    document.body.appendChild(toast);
+function getLegacyProductImages() {
+    const images = Array.isArray(currentProduct?.images)
+        ? currentProduct.images.filter(isSupportedGalleryImage)
+        : [];
 
-    setTimeout(() => {
-        toast.classList.add("show");
-    }, 100);
+    if (images.length === 0 && isSupportedGalleryImage(currentProduct?.image)) {
+        images.push(currentProduct.image);
+    }
 
-    setTimeout(() => {
-        toast.classList.remove("show");
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    return images.length > 0 ? images : ["asset/images/placeholder.png"];
+}
+
+function normalizeProductColors(colors) {
+    if (!Array.isArray(colors)) return [];
+
+    return colors.map(color => {
+        const name = typeof color === "string" ? color.trim() : String(color?.name || "").trim();
+        if (!name) return null;
+
+        const rawCode = typeof color === "string" && COLOR_HEX_PATTERN.test(color)
+            ? color
+            : color?.code || color?.value;
+        const code = COLOR_HEX_PATTERN.test(rawCode || "")
+            ? rawCode
+            : COLOR_CODE_MAP[name.toLowerCase()];
+        if (!code) return null;
+
+        return {
+            name,
+            code,
+            images: Array.isArray(color?.images) ? color.images.filter(isSupportedGalleryImage) : []
+        };
+    }).filter(Boolean);
+}
+
+function renderProductGallery(images) {
+    const mainImg = document.getElementById("mainImage");
+    const thumbsContainer = document.getElementById("thumbs");
+    const galleryImages = Array.isArray(images) ? images.filter(isSupportedGalleryImage) : [];
+
+    if (mainImg) mainImg.src = galleryImages[0] || "";
+    if (!thumbsContainer) return;
+
+    thumbsContainer.innerHTML = "";
+    if (galleryImages.length <= 1) return;
+
+    galleryImages.forEach((imageSource, index) => {
+        const thumb = document.createElement("img");
+        thumb.src = imageSource;
+        thumb.alt = `${currentProduct.name || "Product"} image ${index + 1}`;
+        thumb.className = "thumb-img" + (index === 0 ? " active" : "");
+        thumb.addEventListener("click", () => {
+            if (mainImg) mainImg.src = imageSource;
+            thumbsContainer.querySelectorAll(".thumb-img").forEach(item => item.classList.remove("active"));
+            thumb.classList.add("active");
+        });
+        thumbsContainer.appendChild(thumb);
+    });
+}
+
+function renderColorOptions() {
+    const colorOptions = document.getElementById("colorOptions");
+    const colorDotsContainer = document.getElementById("colorDots");
+    const currentColorLabel = document.getElementById("currentColor");
+    const colors = normalizeProductColors(currentProduct.colors);
+
+    if (!colorOptions || !colorDotsContainer) {
+        selectedColorName = "Standard";
+        renderProductGallery(getLegacyProductImages());
+        return;
+    }
+
+    colorDotsContainer.innerHTML = "";
+    if (colors.length === 0) {
+        colorOptions.hidden = true;
+        selectedColorName = "Standard";
+        renderProductGallery(getLegacyProductImages());
+        return;
+    }
+
+    colorOptions.hidden = false;
+    colors.forEach((color, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "color-option";
+        button.setAttribute("aria-label", color.name);
+        button.setAttribute("aria-pressed", "false");
+        button.title = color.name;
+
+        const swatch = document.createElement("span");
+        swatch.className = "color-option-swatch";
+        swatch.style.backgroundColor = color.code;
+        swatch.setAttribute("aria-hidden", "true");
+        const label = document.createElement("span");
+        label.textContent = color.name;
+        button.append(swatch, label);
+
+        button.addEventListener("click", () => {
+            colorDotsContainer.querySelectorAll(".color-option").forEach(option => {
+                option.classList.remove("active");
+                option.setAttribute("aria-pressed", "false");
+            });
+            button.classList.add("active");
+            button.setAttribute("aria-pressed", "true");
+            selectedColorName = color.name;
+            if (currentColorLabel) currentColorLabel.textContent = `Color: ${color.name}`;
+            renderProductGallery(color.images.length > 0 ? color.images : getLegacyProductImages());
+        });
+
+        colorDotsContainer.appendChild(button);
+        if (index === 0) button.click();
+    });
 }
 
 // 2. دالة التهيئة الأساسية تحولت إلى async لتنتظر الفايربيز
@@ -75,97 +179,10 @@ function renderProductData() {
     if (titleEl) titleEl.innerText = currentProduct.name;
     if (priceEl) priceEl.innerText = `${currentProduct.price} EGP`;
     if (descEl) descEl.innerText = currentProduct.description || "No description available.";
-// ================= Meta Pixel - ViewContent =================
-if (typeof fbq !== "undefined") {
-    fbq("track", "ViewContent", {
-        content_ids: [currentProduct.id],
-        content_name: currentProduct.name,
-        content_type: "product",
-        value: currentProduct.price,
-        currency: "EGP"
-    });
-}
-    // معالجة الصور المتعددة والـ Thumbnails
-    const mainImg = document.getElementById("mainImage");
-    const thumbsContainer = document.getElementById("thumbs");
 
-    const productImages = currentProduct.images || [];
-    if (productImages.length === 0 && currentProduct.image) {
-        productImages.push(currentProduct.image);
-    }
-    if (productImages.length === 0) {
-        productImages.push("asset/images/placeholder.png");
-    }
+    trackViewContent(currentProduct);
 
-    if (mainImg) mainImg.src = productImages[0];
-
-    if (thumbsContainer) {
-        thumbsContainer.innerHTML = "";
-        if (productImages.length > 1) {
-            productImages.forEach((imgSrc, index) => {
-                const thumb = document.createElement("img");
-                thumb.src = imgSrc;
-                thumb.className = "thumb-img" + (index === 0 ? " active" : "");
-                thumb.onclick = () => {
-                    if (mainImg) mainImg.src = imgSrc;
-                    document.querySelectorAll(".thumb-img").forEach(t => t.classList.remove("active"));
-                    thumb.classList.add("active");
-                };
-                thumbsContainer.appendChild(thumb);
-            });
-        }
-    }
-
-    // عرض الألوان
-    const colorDotsContainer = document.getElementById("colorDots");
-    const currentColorLabel = document.getElementById("currentColor");
-
-    if (colorDotsContainer) {
-        colorDotsContainer.innerHTML = "";
-        const productColors = currentProduct.colors || [];
-
-        if (productColors.length === 0) {
-            selectedColorName = "Standard";
-            if (currentColorLabel) currentColorLabel.innerText = "Color: Standard";
-        } else {
-            productColors.forEach((color, index) => {
-                const dot = document.createElement("div");
-                dot.className = "color-dot";
-
-                const colorCode = typeof color === "object" ? color.code : color;
-                const colorName = typeof color === "object" ? color.name : color;
-
-                dot.style.backgroundColor = colorCode;
-                dot.style.width = "25px";
-                dot.style.height = "25px";
-                dot.style.borderRadius = "50%";
-                dot.style.display = "inline-block";
-                dot.style.marginRight = "10px";
-                dot.style.cursor = "pointer";
-                dot.style.border = "2px solid #ccc";
-
-                if (index === 0) {
-                    dot.classList.add("active");
-                    dot.style.borderColor = "#000";
-                    selectedColorName = colorName || 'Default';
-                    if (currentColorLabel) currentColorLabel.innerText = `Color: ${selectedColorName}`;
-                }
-
-                dot.onclick = () => {
-                    document.querySelectorAll(".color-dot").forEach(d => {
-                        d.classList.remove("active");
-                        d.style.borderColor = "#ccc";
-                    });
-                    dot.classList.add("active");
-                    dot.style.borderColor = "#000";
-                    selectedColorName = colorName || 'Default';
-                    if (currentColorLabel) currentColorLabel.innerText = `Color: ${selectedColorName}`;
-                };
-
-                colorDotsContainer.appendChild(dot);
-            });
-        }
-    }
+    renderColorOptions();
 
     // عرض المقاسات
     const sizeSelector = document.getElementById("sizeSelector");
@@ -267,34 +284,16 @@ function addToCartFromDetails() {
         qty: qty
     };
 
-addToCart(cartItem);
+    addToCart(cartItem);
+    trackAddToCart({
+        id: currentProduct.id,
+        name: currentProduct.name,
+        price: currentProduct.price,
+        color: selectedColorName,
+        size: activeSize.innerText
+    }, qty);
 
-// ================= Meta Pixel - AddToCart =================
-if (typeof fbq !== "undefined") {
-    fbq("track", "AddToCart", {
-        content_ids: [currentProduct.id],
-        content_name: currentProduct.name,
-        content_type: "product",
-        value: currentProduct.price * qty,
-        currency: "EGP"
-    });
-}
-// ================= Google Analytics - AddToCart =================
-if (typeof gtag !== "undefined") {
-    gtag('event', 'add_to_cart', {
-        currency: 'EGP',
-        value: currentProduct.price * qty,
-        items: [{
-            item_id: currentProduct.id,
-            item_name: currentProduct.name,
-            price: currentProduct.price,
-            quantity: qty,
-            item_variant: selectedColorName + ' / ' + activeSize.innerText
-        }]
-    });
-}
-
-showToast(window.getText ? window.getText('addedToCart') : 'Added to cart successfully!');
+    showToast(window.getText ? window.getText('addedToCart') : 'Added to cart successfully!');
     // إعادة ضبط العداد بعد نجاح الإضافة
     qty = 1;
     const qtyEl = document.getElementById("qty");

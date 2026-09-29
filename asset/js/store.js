@@ -104,12 +104,65 @@ export async function getSections() {
 
 export async function getSoldOutProducts() {
     const products = await getProducts();
-    return products.filter(p => p.status === "out-of-stock");
+    return products.filter(isProductCompletelySoldOut);
 }
 
 export async function getInStockProducts() {
     const products = await getProducts();
-    return products.filter(p => p.status === "in-stock");
+    return products.filter(p => !isProductCompletelySoldOut(p));
+}
+
+function hasColorInventory(color) {
+    return Boolean(color && typeof color.inventory === "object" && color.inventory !== null && !Array.isArray(color.inventory));
+}
+
+function findProductColor(product, colorName) {
+    const normalizedName = String(colorName || "").trim().toLowerCase();
+    if (!normalizedName || !Array.isArray(product?.colors)) return null;
+
+    return product.colors.find(color => {
+        const name = typeof color === "string" ? color : color?.name;
+        return String(name || "").trim().toLowerCase() === normalizedName;
+    }) || null;
+}
+
+export function hasManagedInventory(product) {
+    return Array.isArray(product?.colors) && product.colors.some(hasColorInventory);
+}
+
+export function getColorSizeQuantity(product, colorName, size) {
+    const color = findProductColor(product, colorName);
+    if (!hasColorInventory(color)) return null;
+
+    const quantity = color.inventory[size];
+    return Number.isSafeInteger(quantity) && quantity >= 0 ? quantity : 0;
+}
+
+export function isSizeAvailableForColor(product, colorName, size) {
+    const quantity = getColorSizeQuantity(product, colorName, size);
+    if (quantity !== null) return quantity > 0;
+
+    if (!hasManagedInventory(product)) return product?.status !== "out-of-stock";
+
+    return Boolean(findProductColor(product, colorName));
+}
+
+export function isProductCompletelySoldOut(product) {
+    if (!hasManagedInventory(product)) return product?.status === "out-of-stock";
+
+    const colors = Array.isArray(product.colors)
+        ? product.colors.filter(color => {
+            const name = typeof color === "string" ? color : color?.name;
+            return String(name || "").trim();
+        })
+        : [];
+    const sizes = Array.isArray(product.sizes)
+        ? [...new Set(product.sizes.map(size => String(size || "").trim()).filter(Boolean))]
+        : [];
+
+    if (colors.length === 0 || sizes.length === 0) return true;
+
+    return !colors.some(color => sizes.some(size => isSizeAvailableForColor(product, color.name, size)));
 }
 
 // =========================================================================
@@ -124,12 +177,44 @@ export function setAdminLoggedIn(val) {
     localStorage.setItem("adminLoggedIn", val ? "true" : "false");
 }
 
+export function getCartData() {
+    return JSON.parse(localStorage.getItem("cart") || "[]");
+}
+
+export function saveCartData(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+}
+
 export function getCart() {
-    return JSON.parse(localStorage.getItem("cart")) || [];
+    return getCartData();
 }
 
 export function saveCart(cart) {
-    localStorage.setItem("cart", JSON.stringify(cart));
+    saveCartData(cart);
+}
+
+export function showToast(message) {
+    const existingToast = document.querySelector(".kham-toast");
+    if (existingToast) existingToast.remove();
+
+    const toast = document.createElement("div");
+    toast.className = "kham-toast";
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add("show");
+    }, 100);
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 export function addToCart(item) {

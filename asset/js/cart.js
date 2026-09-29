@@ -1,67 +1,7 @@
+import { getCartData, saveCartData, updateCartCount, addToCart, showToast } from './store.js';
+
 // 1. تصدير الدوال الأساسية لتتمكن باقي الملفات (مثل details.js) من استيرادها واستخدامها مباشرة
-export function getCartData() {
-    return JSON.parse(localStorage.getItem("cart") || "[]");
-}
-
-export function saveCartData(cart) {
-    localStorage.setItem("cart", JSON.stringify(cart));
-}
-
-export function updateCartCount() {
-    const countEl = document.getElementById("cartCount");
-
-    if (!countEl) {
-        setTimeout(updateCartCount, 300);
-        return;
-    }
-
-    const cart = getCartData();
-    const count = cart.reduce((sum, item) => sum + item.qty, 0);
-
-    countEl.innerText = count > 0 ? count : "";
-}
-
-export function addToCart(product) {
-    let cart = getCartData();
-
-    // التحقق من وجود المنتج بنفس المقاس واللون
-    const existing = cart.find(item =>
-        item.id == product.id &&
-        item.size == product.size &&
-        item.color == product.color
-    );
-
-    if (existing) {
-        existing.qty += product.qty || 1;
-    } else {
-        cart.push({
-            ...product,
-            qty: product.qty || 1
-        });
-    }
-
-    saveCartData(cart);
-    updateCartCount();
-    showToast("Added to cart");
-}
-
-function showToast(message) {
-    let toast = document.createElement("div");
-    toast.className = "toast";
-    toast.innerText = message;
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add("show");
-    }, 100);
-
-    setTimeout(() => {
-        toast.classList.remove("show");
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
-    }, 2000);
-}
+export { getCartData, saveCartData, updateCartCount, addToCart, showToast };
 
 // 2. تحديث كمية المنتج وتصديرها مع ربطها بـ window لضمان عدم حدوث تعارض
 export function updateQty(id, type) {

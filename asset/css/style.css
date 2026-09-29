@@ -60,12 +60,17 @@ body {
     background-color: var(--color-text);
     color: var(--color-white);
     text-align: center;
-    padding: 8px 0;
-    font-size: 20px;
+    padding: 8px 16px;
+    font-size: 16px;
     font-weight: 600;
-    letter-spacing: 1px;
-    overflow: hidden;
+    letter-spacing: 0.5px;
+    text-transform: none;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
 
+.promo_bar[hidden] {
+    display: none;
 }
 
 
@@ -731,7 +736,42 @@ body {
 
 .color-dots {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 15px;
+}
+
+.color-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 5px 10px;
+    border: 1px solid #d6d2d6;
+    border-radius: 20px;
+    background: #fff;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.color-option.active {
+    border-color: #2b1142;
+    box-shadow: 0 0 0 1px #2b1142;
+}
+
+.color-option:focus-visible {
+    outline: 2px solid #2b1142;
+    outline-offset: 2px;
+}
+
+.color-option-swatch {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    border-radius: 50%;
 }
 
 .dot {
@@ -770,6 +810,43 @@ body {
     background: #2b1142;
     color: white;
     border-color: #2b1142;
+}
+
+.size-btn:disabled {
+    color: #777;
+    background: #ededed;
+    border-color: #d2d2d2;
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.size-btn.with-stock-state {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: auto;
+    min-height: 45px;
+    padding: 6px 10px;
+    line-height: 1.2;
+}
+
+.size-stock-label {
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.size-availability-message {
+    margin: -12px 0 20px;
+    color: #8a2630;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.size-availability-message[hidden] {
+    display: none;
 }
 
 .quantity-selector {
@@ -1638,12 +1715,14 @@ select.error {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #fdfbff; /* لون الخلفية، تقدر تخليه #111 لو موقعك دارك */
+    background-color: #fdfbff;
+    /* لون الخلفية، تقدر تخليه #111 لو موقعك دارك */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 999999; /* عشان يغطي على كل حاجة في الموقع */
+    z-index: 999999;
+    /* عشان يغطي على كل حاجة في الموقع */
     transition: opacity 0.6s ease, visibility 0.6s ease;
 }
 
@@ -1651,7 +1730,8 @@ select.error {
     width: 50px;
     height: 50px;
     border: 4px solid #f3f3f3;
-    border-top: 4px solid #2b1142; /* لون البراند الموف الغامق بتاعك */
+    border-top: 4px solid #2b1142;
+    /* لون البراند الموف الغامق بتاعك */
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 15px;
@@ -1668,13 +1748,25 @@ select.error {
 
 /* حركات الأنيميشن */
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
 }
 
 /* الكلاس اللي الجافاسكريبت هيحطه عشان يخفي الشاشة */

@@ -1,7 +1,11 @@
 // 1. استيراد دالة تحديث عداد السلة من الـ store لضمان تصفير العداد بعد نجاح الأوردر
 import { updateCartCount } from './store.js';
+import { trackInitiateCheckout, trackPurchase } from './analytics.js';
+import { renderAnnouncement } from './announcement.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    renderAnnouncement('#checkout-announcement');
+
     const form = document.getElementById("checkoutForm");
     const govSelect = document.getElementById("governorate");
     const itemsContainer = document.getElementById("checkoutItems");
@@ -80,39 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (govSelect) govSelect.addEventListener('change', renderCheckout);
     renderCheckout();
 
-    // ================= Meta Pixel - InitiateCheckout =================
-    if (typeof fbq !== "undefined") {
-        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-
-        const totalValue = cart.reduce((sum, item) => {
-            return sum + (item.price * item.qty);
-        }, 0);
-
-        fbq("track", "InitiateCheckout", {
-            num_items: cart.length,
-            value: totalValue,
-            currency: "EGP"
-        });
-    }
-    // ================= Google Analytics - Begin Checkout =================
-    if (typeof gtag !== "undefined") {
-        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const totalValue = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        
-        const gaItems = cart.map(i => ({
-            item_id: i.productId || i.id,
-            item_name: i.name,
-            price: i.price,
-            quantity: i.qty,
-            item_variant: (i.color || 'Def') + ' / ' + (i.size || 'Std')
-        }));
-
-        gtag('event', 'begin_checkout', {
-            currency: 'EGP',
-            value: totalValue,
-            items: gaItems
-        });
-    }
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    trackInitiateCheckout(cart);
 
     window.addEventListener('languagechange', renderCheckout);
 
@@ -195,21 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // الإرسال للإكسيل بيحصل في "صمت" بالنسبة للمستخدم
-                await fetch(SHEETDB_URL, {
+                const response = await fetch(SHEETDB_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderData)
                 });
 
-                // ================= Meta Pixel - Purchase =================
-                if (typeof fbq !== "undefined") {
+                if (response.ok) {
                     const purchaseValue = parseFloat(totalPrice.replace(/[^\d.]/g, ""));
-
-                    fbq("track", "Purchase", {
-                        transaction_id: generatedID,
-                        value: purchaseValue,
-                        currency: "EGP"
-                    });
+                    trackPurchase(generatedID, purchaseValue, cart);
                 }
 
                 // مسح السلة وتحديث عداد السلة في الـ Navbar فوراً

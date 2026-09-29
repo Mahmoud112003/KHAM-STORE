@@ -2,13 +2,9 @@
 <html lang="en">
 
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W1K5P5TSDK"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', 'G-W1K5P5TSDK');
+        window.dataLayer.push({ event: 'page_init' });
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,11 +15,11 @@
 </head>
 
 <body>
-<!-- شاشة تحميل متجر خام -->
-<div id="kham-loader" class="kham-loader-wrapper">
-    <div class="kham-spinner"></div>
-    <div class="kham-brand-text">KHAM</div>
-</div>
+    <!-- شاشة تحميل متجر خام -->
+    <div id="kham-loader" class="kham-loader-wrapper">
+        <div class="kham-spinner"></div>
+        <div class="kham-brand-text">KHAM</div>
+    </div>
     <!-- NAV -->
     <div id="nav-placeholder"></div>
 

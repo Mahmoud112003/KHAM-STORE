@@ -1,12 +1,17 @@
 // 1. استيراد دالة تحديث عداد السلة من ملف الـ store لضمان مزامنة البيانات
 import { updateCartCount } from './store.js';
+import './analytics.js';
+import { renderAnnouncement } from './announcement.js';
 
 // Load navigation bar from nav.html and insert into placeholder
 fetch("nav.html")
     .then(res => res.text())
     .then(data => {
         const nav = document.getElementById("nav-placeholder");
-        if (nav) nav.innerHTML = data;
+        if (nav) {
+            nav.innerHTML = data;
+            renderAnnouncement();
+        }
 
         // تشغيل دالة تحديث العداد فوراً بعد التأكد من أن الـ Navbar نزل في الـ DOM
         updateCartCount();
@@ -87,7 +92,7 @@ document.addEventListener("click", function (e) {
 
 
 // ================= إخفاء شاشة التحميل =================
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     const loader = document.getElementById('kham-loader');
     if (loader) {
         setTimeout(() => {

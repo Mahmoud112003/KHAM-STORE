@@ -1,18 +1,10 @@
 // 1. استيراد دالة تسجيل الدخول والـ auth من ملف إعدادات الفايربيز
 import { auth } from './firebase-config.js';
+import { getAdminLoggedIn, setAdminLoggedIn } from './store.js';
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const loginForm = document.getElementById("login-form");
 const errorMessage = document.getElementById("login-error");
-
-// دالة مساعدة للتحقق من حالة الدخول القديمة (لو لسه محتاجها كـ fallback)
-function getAdminLoggedIn() {
-    return localStorage.getItem("adminLoggedIn") === "true";
-}
-
-function setAdminLoggedIn(status) {
-    localStorage.setItem("adminLoggedIn", status ? "true" : "false");
-}
 
 // التحقق أولاً: لو الأدمن مسجل بالفعل ينقله تلقائياً لصفحة التحكم
 if (getAdminLoggedIn()) {
