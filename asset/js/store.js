@@ -1,36 +1,58 @@
 // 1. استيراد إعدادات الفايربيز والدوال المطلوبة للتعامل مع Firestore
 import { db, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } from './firebase-config.js';
 
+let productsCache = null;
+let productsRequest = null;
+const productByIdCache = new Map();
+
+export function clearProductsCache() {
+    productsCache = null;
+    productsRequest = null;
+    productByIdCache.clear();
+}
+
 // =========================================================================
 // 2. دالات المنتجات المربوطة بالفايربيز (Firebase Firestore Functions)
 // =========================================================================
 
 // جلب جميع المنتجات من الفايربيز
 export async function getProducts() {
-    try {
-        console.time("Firebase Products");
+    if (productsCache) return productsCache;
+    if (productsRequest) return productsRequest;
 
-        const querySnapshot = await getDocs(collection(db, "products"));
-
-        console.timeEnd("Firebase Products");
-
-        let products = [];
-
-        querySnapshot.forEach((doc) => {
-            products.push({ id: doc.id, ...doc.data() });
-        });
-
-        return products;
-    } catch (error) {
-        console.error(error);
-        return [];
-    }
+    const startMark = performance?.mark ? performance.mark('products-fetch-start') : null;
+    productsRequest = (async () => {
+        try {
+            console.time("Firebase Products");
+            const querySnapshot = await getDocs(collection(db, "products"));
+            console.timeEnd("Firebase Products");
+            const products = querySnapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }));
+            productsCache = products;
+            products.forEach(product => productByIdCache.set(product.id, product));
+            return products;
+        } catch (error) {
+            console.error(error);
+            return [];
+        } finally {
+            if (performance?.measure) {
+                performance.mark('products-fetch-end');
+                try {
+                    performance.measure('products-fetch-duration', 'products-fetch-start', 'products-fetch-end');
+                } catch (measureError) {
+                    console.debug('Products fetch measurement skipped:', measureError);
+                }
+            }
+            productsRequest = null;
+        }
+    })();
+    return productsRequest;
 }
 
 // إضافة منتج جديد للفايربيز
 export async function addProduct(product) {
     try {
         const docRef = await addDoc(collection(db, "products"), product);
+        clearProductsCache();
         console.log("تم إضافة المنتج بنجاح بمعرف:", docRef.id);
         return docRef.id;
     } catch (error) {
@@ -42,14 +64,21 @@ export async function addProduct(product) {
 // جلب منتج واحد معين بالـ ID (مهم جداً لصفحة التفاصيل details.js)
 export async function getProductById(id) {
     try {
+        const cachedProduct = productsCache?.find((product) => product.id === id) || productByIdCache.get(id);
+        if (cachedProduct) {
+            return cachedProduct;
+        }
+
         const docRef = doc(db, "products", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() };
-        } else {
-            console.warn("المنتج غير موجود في قاعدة البيانات!");
-            return null;
+            const product = { id: docSnap.id, ...docSnap.data() };
+            productByIdCache.set(product.id, product);
+            return product;
         }
+
+        console.warn("المنتج غير موجود في قاعدة البيانات!");
+        return null;
     } catch (error) {
         console.error("خطأ في جلب تفاصيل المنتج:", error);
         return null;
@@ -61,6 +90,7 @@ export async function updateProduct(id, data) {
     try {
         const docRef = doc(db, "products", id);
         await updateDoc(docRef, data);
+        clearProductsCache();
         console.log("تم تحديث المنتج بنجاح:", id);
     } catch (error) {
         console.error("خطأ في تحديث المنتج:", error);
@@ -73,6 +103,7 @@ export async function deleteProduct(id) {
     try {
         const docRef = doc(db, "products", id);
         await deleteDoc(docRef);
+        clearProductsCache();
         console.log("تم مسح المنتج بنجاح:", id);
     } catch (error) {
         console.error("خطأ في مسح المنتج:", error);
@@ -116,6 +147,10 @@ function hasColorInventory(color) {
     return Boolean(color && typeof color.inventory === "object" && color.inventory !== null && !Array.isArray(color.inventory));
 }
 
+function hasProductInventory(product) {
+    return Boolean(product && typeof product.inventory === "object" && product.inventory !== null && !Array.isArray(product.inventory));
+}
+
 function findProductColor(product, colorName) {
     const normalizedName = String(colorName || "").trim().toLowerCase();
     if (!normalizedName || !Array.isArray(product?.colors)) return null;
@@ -127,14 +162,15 @@ function findProductColor(product, colorName) {
 }
 
 export function hasManagedInventory(product) {
-    return Array.isArray(product?.colors) && product.colors.some(hasColorInventory);
+    return hasProductInventory(product) || (Array.isArray(product?.colors) && product.colors.some(hasColorInventory));
 }
 
 export function getColorSizeQuantity(product, colorName, size) {
     const color = findProductColor(product, colorName);
-    if (!hasColorInventory(color)) return null;
-
-    const quantity = color.inventory[size];
+    const inventory = hasColorInventory(color) ? color.inventory :
+        (!Array.isArray(product?.colors) || product.colors.length === 0) && hasProductInventory(product) ? product.inventory : null;
+    if (!inventory) return null;
+    const quantity = inventory[size];
     return Number.isSafeInteger(quantity) && quantity >= 0 ? quantity : 0;
 }
 
@@ -144,13 +180,13 @@ export function isSizeAvailableForColor(product, colorName, size) {
 
     if (!hasManagedInventory(product)) return product?.status !== "out-of-stock";
 
-    return Boolean(findProductColor(product, colorName));
+    return Boolean(findProductColor(product, colorName)) && product?.status !== "out-of-stock";
 }
 
 export function isProductCompletelySoldOut(product) {
     if (!hasManagedInventory(product)) return product?.status === "out-of-stock";
 
-    const colors = Array.isArray(product.colors)
+    const colors = Array.isArray(product.colors) && product.colors.length
         ? product.colors.filter(color => {
             const name = typeof color === "string" ? color : color?.name;
             return String(name || "").trim();
@@ -160,9 +196,13 @@ export function isProductCompletelySoldOut(product) {
         ? [...new Set(product.sizes.map(size => String(size || "").trim()).filter(Boolean))]
         : [];
 
-    if (colors.length === 0 || sizes.length === 0) return true;
+    if (sizes.length === 0) return true;
+    if (colors.length === 0) return !sizes.some(size => Number.isSafeInteger(product.inventory?.[size]) && product.inventory[size] > 0);
 
-    return !colors.some(color => sizes.some(size => isSizeAvailableForColor(product, color.name, size)));
+    return !colors.some(color => {
+        const colorName = typeof color === "string" ? color : color.name;
+        return sizes.some(size => isSizeAvailableForColor(product, colorName, size));
+    });
 }
 
 // =========================================================================
@@ -217,9 +257,12 @@ export function showToast(message) {
     }, 3000);
 }
 
-export function addToCart(item) {
+export function addToCart(item, availableStock = null) {
     const cart = getCart();
     const existing = cart.find(p => p.id === item.id);
+    if (Number.isSafeInteger(availableStock) && availableStock >= 0 && (existing?.qty || 0) + item.qty > availableStock) {
+        return false;
+    }
     if (existing) {
         existing.qty += item.qty;
     } else {
@@ -227,6 +270,7 @@ export function addToCart(item) {
     }
     saveCart(cart);
     updateCartCount();
+    return true;
 }
 
 export function updateCartCount() {

@@ -95,7 +95,7 @@ body {
 
         /* التعديل الجوهري: الإخفاء عبر الـ transform بدلاً من المرجن السالب لمنع تدمير المحاذاة */
         transform: translateX(100%);
-        transition: transform 0.3s ease-in-out;
+        transition: transform 220ms ease;
         display: flex !important;
     }
 
@@ -306,7 +306,7 @@ body {
         z-index: 1000;
         padding: 90px 25px 25px 25px;
         transform: translateX(100%);
-        transition: transform 0.3s ease-in-out;
+        transition: transform 220ms ease;
         display: flex !important;
     }
 

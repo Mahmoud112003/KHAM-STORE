@@ -6,14 +6,15 @@ let allProducts = [];
 // 2. تحويل الدالة لـ async علشان تنتظر جلب البيانات من الفايربيز
 async function loadProducts() {
     try {
-        // جلب المنتجات مباشرة من الفايربيز
         allProducts = await getProducts();
-
-        // تشغيل الفلاتر والأحداث بعد التأكد من وصول البيانات
         applyFilters();
         setupEventListeners();
     } catch (error) {
         console.error("خطأ أثناء تحميل المنتجات في الكتالوج:", error);
+    } finally {
+        window.khamLoaderState = window.khamLoaderState || { nav: true, footer: true, content: false };
+        window.khamLoaderState.content = true;
+        window.hideLoaderIfReady?.();
     }
 }
 
@@ -32,7 +33,7 @@ function renderProducts(products) {
     }
 
     products.forEach(p => {
-        const image = p.images?.[0] || "asset/images/placeholder.png";
+        const image = getProductCardImage(p);
         const priceValue = parseFloat(p.price) || 0;
         const isSoldOut = isProductCompletelySoldOut(p);
 
@@ -53,6 +54,30 @@ function renderProducts(products) {
         card.onclick = () => window.location.href = `details.html?productId=${p.id}`;
         grid.appendChild(card);
     });
+}
+
+function getProductCardImage(product) {
+    const supportedImage = source => typeof source === "string" && (
+        /^data:image\/[a-z0-9.+-]+;base64,/i.test(source) ||
+        /^https?:\/\//i.test(source) ||
+        /^(?:\.\/|\/)?asset\/[a-z0-9_./-]+$/i.test(source)
+    );
+    const productImage = Array.isArray(product.images)
+        ? product.images.find(supportedImage)
+        : null;
+
+    if (productImage) return productImage;
+
+    if (Array.isArray(product.colors)) {
+        for (const color of product.colors) {
+            const colorImage = Array.isArray(color?.images)
+                ? color.images.find(supportedImage)
+                : null;
+            if (colorImage) return colorImage;
+        }
+    }
+
+    return "asset/images/placeholder.png";
 }
 
 // تربط أحداث الفلترة والترتيب (بقت زي ما هي بدون تعديل)

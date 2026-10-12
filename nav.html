@@ -5,12 +5,13 @@
 <header class="header">
     <div class="container">
         <div class="logo">KHAM | خام</div>
-        <button class="menu-toggle" aria-label="Toggle Menu">
+        <button class="menu-toggle" type="button" aria-label="Toggle Menu" aria-controls="site-navigation"
+            aria-expanded="false">
             <span class="bar"></span>
             <span class="bar"></span>
             <span class="bar"></span>
         </button>
-        <nav class="nav">
+        <nav class="nav" id="site-navigation">
             <ul>
                 <li><a href="home.html" data-i18n="navHome">Home</a></li>
                 <li><a href="product.html" data-i18n="navCatalog">Catalog</a></li>

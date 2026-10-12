@@ -43,6 +43,8 @@ const LEGACY_COLOR_CODE_MAP = {
 };
 let colorDrafts = [];
 let nextColorDraftId = 1;
+let productInventoryEnabled = false;
+let productInventory = {};
 
 function getAdminText(key, fallback) {
     return window.getText ? window.getText(key, fallback) : fallback;
@@ -100,6 +102,23 @@ function normalizeProductColors(colors) {
     }).filter(Boolean);
 }
 
+function getProductLegacyImages(product) {
+    if (!product || !Array.isArray(product.images)) return [];
+    return product.images.filter(isSupportedProductImage);
+}
+
+function getProductPrimaryImage(product) {
+    if (product && Array.isArray(product.colors) && product.colors.length > 0) {
+        for (const color of product.colors) {
+            const colorImages = Array.isArray(color?.images) ? color.images.filter(isSupportedProductImage) : [];
+            if (colorImages.length > 0) return colorImages[0];
+        }
+    }
+
+    const legacyImages = getProductLegacyImages(product);
+    return legacyImages[0] || "asset/images/placeholder.png";
+}
+
 function createColorField(labelText, control) {
     const group = document.createElement("div");
     group.className = "form-group";
@@ -147,9 +166,6 @@ function renderColorImages(card, draft) {
 function renderColorInventory(card, draft) {
     if (draft.inventoryEnabled) {
         draft.inventory ||= {};
-        getSelectedProductSizes().forEach(size => {
-            if (!Object.prototype.hasOwnProperty.call(draft.inventory, size)) draft.inventory[size] = 0;
-        });
     }
 
     const section = document.createElement("section");
@@ -160,7 +176,7 @@ function renderColorInventory(card, draft) {
     toggle.type = "checkbox";
     toggle.id = `trackInventory-${draft.id}`;
     toggle.checked = draft.inventoryEnabled;
-    toggle.disabled = draft.inventoryLocked;
+    toggle.disabled = false;
     const toggleText = document.createElement("span");
     toggleText.textContent = getAdminText("trackInventoryBySize", "Track inventory by size");
     toggleLabel.append(toggle, toggleText);
@@ -196,13 +212,9 @@ function renderColorInventory(card, draft) {
     card.appendChild(section);
 
     toggle.addEventListener("change", () => {
-        if (!toggle.checked) return;
-        draft.inventoryEnabled = true;
+        draft.inventoryEnabled = toggle.checked;
         draft.inventoryLocked = true;
         draft.inventory ||= {};
-        getSelectedProductSizes().forEach(size => {
-            if (!Object.prototype.hasOwnProperty.call(draft.inventory, size)) draft.inventory[size] = 0;
-        });
         renderProductColors();
     });
 }
@@ -215,15 +227,13 @@ function renderProductColors() {
         const emptyMessage = document.createElement("p");
         emptyMessage.textContent = getAdminText("noProductColors", "No colors added.");
         productColorList.appendChild(emptyMessage);
+        renderProductInventory();
         return;
     }
 
     colorDrafts.forEach(draft => {
         if (draft.inventoryEnabled) {
             draft.inventory ||= {};
-            getSelectedProductSizes().forEach(size => {
-                if (!Object.prototype.hasOwnProperty.call(draft.inventory, size)) draft.inventory[size] = 0;
-            });
         }
 
         const card = document.createElement("fieldset");
@@ -277,7 +287,11 @@ function renderProductColors() {
         imageInput.accept = "image/*";
         imageInput.multiple = true;
         imageInput.addEventListener("change", () => {
-            draft.files = Array.from(imageInput.files || []);
+            const newFiles = Array.from(imageInput.files || []).filter(file => file.type.startsWith("image/"));
+            if (newFiles.length > 0) {
+                draft.files.push(...newFiles);
+            }
+            imageInput.value = "";
             renderColorImages(card, draft);
         });
         card.appendChild(createColorField(getAdminText("colorImages", "Images for this color"), imageInput));
@@ -289,18 +303,43 @@ function renderProductColors() {
         renderColorImages(card, draft);
         renderColorInventory(card, draft);
     });
+    renderProductInventory();
 }
 
 addProductColorButton?.addEventListener("click", () => {
-    const inventory = Object.fromEntries(getSelectedProductSizes().map(size => [size, 0]));
-    colorDrafts.push({ id: nextColorDraftId++, name: "", code: "#000000", images: [], inventoryEnabled: true, inventoryLocked: true, inventory, files: [], previewUrls: [] });
+    colorDrafts.push({ id: nextColorDraftId++, name: "", code: "#000000", images: [], inventoryEnabled: true, inventoryLocked: true, inventory: {}, files: [], previewUrls: [] });
     renderProductColors();
     productColorList.querySelector(".product-color-card:last-child input[type='text']")?.focus();
 });
 
 document.querySelectorAll(".size-checkbox").forEach(checkbox => {
-    checkbox.addEventListener("change", renderProductColors);
+    checkbox.addEventListener("change", () => { renderProductColors(); renderProductInventory(); });
 });
+
+document.getElementById("adminProductTrackInventory")?.addEventListener("change", event => {
+    productInventoryEnabled = event.target.checked;
+    renderProductInventory();
+});
+
+function renderProductInventory() {
+    const container = document.getElementById("adminProductInventoryFields");
+    if (!container) return;
+    const editor = document.getElementById("adminProductInventoryEditor");
+    if (editor) editor.hidden = colorDrafts.length > 0;
+    container.innerHTML = "";
+    container.hidden = !productInventoryEnabled || colorDrafts.length > 0;
+    if (container.hidden) return;
+    getSelectedProductSizes().forEach(size => {
+        const row = document.createElement("label");
+        row.className = "color-inventory-row";
+        row.textContent = size;
+        const input = document.createElement("input");
+        input.type = "number"; input.min = "0"; input.step = "1"; input.required = true;
+        input.value = Number.isSafeInteger(productInventory[size]) && productInventory[size] >= 0 ? String(productInventory[size]) : "";
+        input.addEventListener("input", () => { productInventory[size] = input.value === "" ? "" : Number(input.value); });
+        row.appendChild(input); container.appendChild(row);
+    });
+}
 
 renderProductColors();
 
@@ -336,34 +375,41 @@ function updateSubCategories() {
 }
 window.updateSubCategories = updateSubCategories;
 
-function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
-    return new Promise((resolve) => {
+export function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Could not read the selected image."));
         reader.readAsDataURL(file);
         reader.onload = (event) => {
             const img = new Image();
+            img.onerror = () => reject(new Error("The selected image could not be opened."));
             img.src = event.target.result;
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                let { width, height } = img;
+                try {
+                    const canvas = document.createElement('canvas');
+                    let { width, height } = img;
 
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = (width * maxHeight) / height;
+                            height = maxHeight;
+                        }
                     }
-                } else {
-                    if (height > maxHeight) {
-                        width = (width * maxHeight) / height;
-                        height = maxHeight;
-                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) throw new Error("Image compression is unavailable in this browser.");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                } catch (error) {
+                    reject(error);
                 }
-
-                canvas.width = width;
-                canvas.height = height;
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
             };
         };
     });
@@ -380,19 +426,7 @@ if (form) {
         }
 
         try {
-            const imageInput = document.getElementById("adminProductImages");
-            let imageBase64List = [];
-
-            if (imageInput && imageInput.files.length > 0) {
-                for (let i = 0; i < imageInput.files.length; i++) {
-                    const compressed = await compressImage(imageInput.files[i]);
-                    imageBase64List.push(compressed);
-                }
-            } else if (editMode && editingId) {
-                const currentProd = allProductsCache.find(p => p.id === editingId);
-                if (currentProd) imageBase64List = currentProd.images || [];
-            }
-
+            const currentProd = editMode && editingId ? allProductsCache.find(p => p.id === editingId) : null;
             const sizeGuideInput = document.getElementById("adminProductSizeGuide");
             let sizeGuideBase64 = editMode && editingId ? (allProductsCache.find(p => p.id === editingId)?.sizeGuide || "") : "";
             if (sizeGuideInput && sizeGuideInput.files.length > 0) {
@@ -438,6 +472,11 @@ if (form) {
 
                 const inventory = { ...draft.inventory };
                 if (draft.inventoryEnabled) {
+                    if (sizes.length === 0) {
+                        showAdminMsg("Choose at least one size before tracking inventory.", "danger");
+                        restoreProductSubmitButton(submitButton);
+                        return;
+                    }
                     for (const size of sizes) {
                         const quantity = inventory[size];
                         if (!Number.isSafeInteger(quantity) || quantity < 0) {
@@ -462,10 +501,29 @@ if (form) {
                 });
             }
 
+            if (colors.length === 0 && productInventoryEnabled) {
+                if (sizes.length === 0) {
+                    showAdminMsg("Choose at least one size before tracking inventory.", "danger");
+                    restoreProductSubmitButton(submitButton);
+                    return;
+                }
+                for (const size of sizes) {
+                    if (!Number.isSafeInteger(productInventory[size]) || productInventory[size] < 0) {
+                        showAdminMsg(getAdminText("invalidInventoryQuantity", "Enter a whole quantity of zero or more for every active size."), "danger");
+                        restoreProductSubmitButton(submitButton);
+                        return;
+                    }
+                }
+            }
+
             const selectedStatus = document.getElementById("adminProductStatus")?.value || "in-stock";
-            const inventoryStatus = colors.some(color => isInventoryMap(color.inventory))
-                ? (isProductCompletelySoldOut({ status: selectedStatus, sizes, colors }) ? "out-of-stock" : "in-stock")
+            const inventoryStatus = colors.some(color => isInventoryMap(color.inventory)) || (colors.length === 0 && productInventoryEnabled)
+                ? (isProductCompletelySoldOut({ status: selectedStatus, sizes, colors, ...(colors.length === 0 && productInventoryEnabled ? { inventory: productInventory } : {}) }) ? "out-of-stock" : "in-stock")
                 : selectedStatus;
+
+            const productImages = Array.isArray(currentProd?.images)
+                ? currentProd.images
+                : (colors.length === 0 ? ["asset/images/placeholder.png"] : []);
 
             const productData = {
                 name: document.getElementById("adminProductName").value.trim(),
@@ -476,7 +534,10 @@ if (form) {
                 description: document.getElementById("adminProductDesc") ? document.getElementById("adminProductDesc").value.trim() : "",
                 sizes: sizes,
                 colors,
-                images: imageBase64List.length > 0 ? imageBase64List : ["asset/images/placeholder.png"],
+                ...(colors.length === 0 && productInventoryEnabled ? { inventory: Object.fromEntries(sizes.map(size => [size, productInventory[size]])) } : {}),
+                ...(colors.length === 0 && !productInventoryEnabled && editMode && isInventoryMap(allProductsCache.find(product => product.id === editingId)?.inventory) ? { inventory: null } : {}),
+                ...(colors.length > 0 && editMode && isInventoryMap(allProductsCache.find(product => product.id === editingId)?.inventory) ? { inventory: null } : {}),
+                images: productImages,
                 sizeGuide: sizeGuideBase64,
                 sectionCover: sectionCoverBase64,
                 createdAt: editMode && editingId
@@ -495,6 +556,9 @@ if (form) {
             }
 
             form.reset();
+            productInventoryEnabled = false;
+            productInventory = {};
+            renderProductInventory();
             editMode = false;
             editingId = null;
             colorDrafts.forEach(color => color.previewUrls.forEach(url => URL.revokeObjectURL(url)));
@@ -541,7 +605,7 @@ async function loadAdminProductsTable(explicitList = null) {
     }
 
     list.forEach(p => {
-        const mainImg = p.images?.[0] || "asset/images/placeholder.png";
+        const mainImg = getProductPrimaryImage(p);
         const priceValue = parseFloat(p.price) || 0;
         const isSoldOut = isProductCompletelySoldOut(p);
 
@@ -581,6 +645,11 @@ window.editProductAdmin = function (id) {
     document.querySelectorAll(".size-checkbox").forEach(cb => {
         cb.checked = p.sizes ? p.sizes.includes(cb.value) : false;
     });
+
+    productInventoryEnabled = isInventoryMap(p.inventory);
+    productInventory = productInventoryEnabled ? { ...p.inventory } : {};
+    const trackInventoryCheckbox = document.getElementById("adminProductTrackInventory");
+    if (trackInventoryCheckbox) trackInventoryCheckbox.checked = productInventoryEnabled;
 
     colorDrafts.forEach(color => color.previewUrls.forEach(url => URL.revokeObjectURL(url)));
     colorDrafts = normalizeProductColors(p.colors);
@@ -716,41 +785,3 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // 11. دالة سحرية
-async function autoFixOldProductsColors() {
-    if (allProductsCache.length === 0) return;
-
-    let updatedAny = false;
-
-    for (const p of allProductsCache) {
-        if (p.colors && Array.from(p.colors).length > 0) {
-            let itemChanged = false;
-            const fixedColors = p.colors.map(c => {
-                const colorName = typeof c === "string" ? c : String(c?.name || "");
-                const nameLower = colorName.toLowerCase().trim();
-                const correctCode = LEGACY_COLOR_CODE_MAP[nameLower] || LEGACY_COLOR_CODE_MAP[colorName] || (COLOR_HEX_PATTERN.test(colorName) ? colorName : "#cccccc");
-
-                // لو الكود المتسجل حالياً غلط أو أبيض افتراضي وهو مش لون أبيض، نصلحه
-                if (typeof c === "object" && c && c.code !== correctCode && (c.code === "#ffffff" && nameLower !== "أبيض" && nameLower !== "white")) {
-                    itemChanged = true;
-                    updatedAny = true;
-                    return { ...c, code: correctCode };
-                }
-                return c;
-            });
-
-            if (itemChanged) {
-                // تحديث مباشر في الفاير بيز للمنتجات اللي اتصلحت
-                await updateDoc(doc(db, "products", p.id), { colors: fixedColors });
-            }
-        }
-    }
-
-    if (updatedAny) {
-        await loadAdminProductsTable(); // إعادة عرض الجدول فوراً بالأكواد الجديدة
-    }
-}
-
-// تشغيل الفحص التلقائي بمجرد تحميل الصفحة
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(autoFixOldProductsColors, 1500); // وقت إضافي بسيط لضمان تحميل الداتا من الفاير بيز
-});

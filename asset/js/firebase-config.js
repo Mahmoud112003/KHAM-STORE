@@ -1,7 +1,7 @@
 // استيراد الدوال الأساسية من Firebase باستخدام الـ CDN للمشاريع العادية (Modular SDK)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // بيانات مشروعك الخاصة بمتجر KHAM
 const firebaseConfig = {
@@ -20,4 +20,4 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // تصدير الأدوات عشان نستخدمها في ملفات الـ JS التانية للمنتجات والأدمن
-export { auth, db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc };
+export { auth, db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc, setDoc };

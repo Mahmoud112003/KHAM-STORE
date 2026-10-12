@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == "UYC7sTnExQds6M1o4PP5joixLNL2";
+    }
+
+    // Products: preserve existing access.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Announcement: preserve existing access.
+    match /siteSettings/announcement {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /homeBanners/homeHero {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

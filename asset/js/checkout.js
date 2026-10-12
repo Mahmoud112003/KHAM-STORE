@@ -2,6 +2,7 @@
 import { updateCartCount } from './store.js';
 import { trackInitiateCheckout, trackPurchase } from './analytics.js';
 import { renderAnnouncement } from './announcement.js';
+import { getProductById, getColorSizeQuantity, isSizeAvailableForColor } from './store.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     renderAnnouncement('#checkout-announcement');
@@ -49,18 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let shipping = 0;
         const selectedGov = govSelect ? govSelect.value : "";
         if (selectedGov === "Cairo" || selectedGov === "Giza") {
-            shipping = 80;
+            shipping = 75;
         } else if (selectedGov !== "") {
             shipping = 100;
-        }
-
-        // التعديل: الشحن المجاني التلقائي في صمت
-        const FREE_SHIPPING_THRESHOLD = 1500;
-        let isFreeShipping = false;
-
-        if (subtotal >= FREE_SHIPPING_THRESHOLD) {
-            shipping = 0;
-            isFreeShipping = true;
         }
 
         const total = subtotal + shipping;
@@ -70,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // تحديد النص الذي سيظهر في خانة الشحن
             let shippingDisplay = selectedGov === "" ?
                 (window.getText ? window.getText('governoratePlaceholder') : 'Select Governorate') :
-                (isFreeShipping ? "<span style='color:#28a745; font-weight:bold;'> Free</span>" : "E£" + shipping.toFixed(2));
+                "E£" + shipping.toFixed(2);
 
             summaryContainer.innerHTML = `
                 <div class="summary-row"><span>${window.getText ? window.getText('subtotal') : 'Subtotal'}</span><span>E£${subtotal.toFixed(2)}</span></div>
@@ -137,6 +129,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cart = JSON.parse(localStorage.getItem("cart") || "[]");
             if (cart.length === 0) return;
+
+            const products = new Map();
+            await Promise.all([...new Set(cart.map(item => item.productId).filter(Boolean))].map(async id => products.set(id, await getProductById(id))));
+            const unavailable = cart.some(item => {
+                if (!item.productId) return false;
+                const product = products.get(item.productId);
+                if (!product || !isSizeAvailableForColor(product, item.color, item.size)) return true;
+                const stock = getColorSizeQuantity(product, item.color, item.size);
+                return Number.isSafeInteger(stock) && item.qty > stock;
+            });
+            if (unavailable) {
+                alert("One or more items are out of stock or exceed current stock. Please return to your cart and update them.");
+                return;
+            }
 
             const btn = document.querySelector(".complete-order-btn");
             if (btn) {

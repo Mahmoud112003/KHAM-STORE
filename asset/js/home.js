@@ -5,11 +5,14 @@ import { getProducts } from './store.js';
 async function renderHomeCollections() {
     let products = [];
     try {
-        // جلب المنتجات مباشرة من الفايربيز بدلاً من الـ localStorage
         products = await getProducts();
     } catch (e) {
         console.error("Error reading products from Firebase", e);
     }
+
+    window.khamLoaderState = window.khamLoaderState || { nav: true, footer: true, content: false };
+    window.khamLoaderState.content = true;
+    window.hideLoaderIfReady?.();
 
     const sectionsOrder = [
         "Oversized Hoodie Basic",
@@ -40,48 +43,21 @@ async function renderHomeCollections() {
         const hasCover = sectionProducts.find(p => p.sectionCover && p.sectionCover.trim() !== "");
         const coverSrc = hasCover ? hasCover.sectionCover : (sectionProducts[0].images ? sectionProducts[0].images[0] : "");
 
-        const collectionCard = document.createElement("div");
+        const collectionCard = document.createElement("a");
         collectionCard.className = "collection-banner-card";
-
-        collectionCard.style.position = "relative";
-        collectionCard.style.height = "420px";
-        collectionCard.style.borderRadius = "16px";
-        collectionCard.style.overflow = "hidden";
-        collectionCard.style.cursor = "pointer";
-        collectionCard.style.backgroundColor = "#111";
-        collectionCard.style.boxShadow = "0 10px 30px rgba(0,0,0,0.08)";
-        collectionCard.style.transition = "transform 0.3s ease, box-shadow 0.3s ease";
-
-        collectionCard.addEventListener("mouseenter", () => {
-            collectionCard.style.transform = "translateY(-8px)";
-            collectionCard.style.boxShadow = "0 15px 35px rgba(0,0,0,0.15)";
-            if (collectionCard.querySelector('img')) {
-                collectionCard.querySelector('img').style.transform = "scale(1.04)";
-            }
-        });
-        collectionCard.addEventListener("mouseleave", () => {
-            collectionCard.style.transform = "translateY(0)";
-            collectionCard.style.boxShadow = "0 10px 30px rgba(0,0,0,0.08)";
-            if (collectionCard.querySelector('img')) {
-                collectionCard.querySelector('img').style.transform = "scale(1)";
-            }
-        });
-
-        collectionCard.addEventListener("click", () => {
-            window.location.href = `product.html?section=${encodeURIComponent(section)}`;
-        });
+        collectionCard.href = `product.html?section=${encodeURIComponent(section)}`;
 
         collectionCard.innerHTML = `
             ${coverSrc ? `
-                <img src="${coverSrc}" alt="${section}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease;">
+                <img src="${coverSrc}" alt="${section}" loading="lazy">
             ` : ''}
             
-            <div class="collection-overlay" style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 25px;">
-                <span style="color: #a1a1a1; text-transform: uppercase; font-size: 11px; letter-spacing: 1.5px; font-weight: 500; margin-bottom: 4px;">${window.getText ? window.getText('homeBrand') : 'KHAM BRAND'}</span>
-                <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+            <div class="collection-overlay">
+                <span class="collection-brand">${window.getText ? window.getText('homeBrand') : 'KHAM BRAND'}</span>
+                <h3>
                     ${section}
                 </h3>
-                <div style="display: inline-flex; align-items: center; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid #fff; width: max-content; padding-bottom: 2px;">
+                <div class="collection-discover">
                     ${window.getText ? window.getText('discoverNow') : 'DISCOVER NOW'} →
                 </div>
             </div>

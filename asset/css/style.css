@@ -189,12 +189,47 @@ body {
     animation-play-state: paused;
 }
 
+.home-hero-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 1;
+    overflow: hidden;
+}
+
+.home-hero-banner {
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.home-hero-banner[hidden] {
+    display: none;
+}
+
+.home-hero-image {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--hero-x, 50%) var(--hero-y, 50%);
+    transform: scale(var(--hero-scale, 1));
+    transform-origin: var(--hero-x, 50%) var(--hero-y, 50%);
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+@media (max-width: 600px) {
+    .home-hero-frame {
+        aspect-ratio: 2 / 1;
+    }
+}
+
 /* الحركة من اليمين إلى اليسار */
 @keyframes moveTicker {
     0% {
         transform: translateX(0);
     }
-
     100% {
         transform: translateX(-100%);
     }
@@ -832,10 +867,28 @@ body {
     line-height: 1.2;
 }
 
+.size-btn.sold-out,
+.size-btn:disabled {
+    opacity: .48;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+
 .size-stock-label {
     font-size: 10px;
     font-weight: 500;
     white-space: nowrap;
+}
+
+.cart-stock-warning {
+    display: block;
+    color: #a32626;
+    margin-top: 6px;
+}
+
+.checkout-disabled {
+    opacity: .55;
+    cursor: not-allowed;
 }
 
 .size-availability-message {
@@ -1773,4 +1826,353 @@ select.error {
 .kham-loader-hidden {
     opacity: 0;
     visibility: hidden;
+}
+
+/* Task 5: calm interaction and accessible keyboard states */
+.nav ul li a,
+.user-dropdown a,
+.menu-toggle .bar,
+.product-card,
+.product-img-wrapper img,
+.thumbs img,
+.color-option,
+.size-btn,
+.quantity-selector button,
+.btn-cart,
+.btn-buy,
+.cart-item,
+.qty-controls button,
+.remove-btn,
+.checkout-btn,
+.complete-order-btn,
+.kham-toast,
+.toast,
+.promo_bar {
+    transition-duration: 200ms;
+}
+
+.nav ul li a {
+    position: relative;
+    display: inline-block;
+    padding-block: 4px;
+    transition: color 200ms ease, opacity 200ms ease;
+}
+
+.nav ul li a:hover {
+    opacity: .72;
+}
+
+.product-card {
+    transition: transform 220ms ease;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+}
+
+.product-card:hover img {
+    transform: scale(1.025);
+}
+
+.product-img-wrapper img {
+    transition: transform 260ms ease;
+}
+
+.thumbs img:hover {
+    transform: translateY(-2px);
+}
+
+.color-option {
+    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.color-option.active {
+    background: #f8f6f9;
+}
+
+.size-btn:not(:disabled):hover {
+    border-color: var(--primary-purple);
+    transform: translateY(-1px);
+}
+
+.size-btn:focus-visible,
+.quantity-selector button:focus-visible,
+.btn-cart:focus-visible,
+.btn-buy:focus-visible,
+.size-guide-btn:focus-visible,
+.nav a:focus-visible,
+.menu-toggle:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--primary-purple);
+    outline-offset: 3px;
+}
+
+input,
+select,
+textarea {
+    caret-color: auto;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+.quantity-selector button:hover:not(:disabled),
+.qty-controls button:hover:not(:disabled) {
+    color: var(--primary-purple);
+}
+
+.btn-cart:active:not(:disabled),
+.btn-buy:active:not(:disabled),
+.complete-order-btn:active:not(:disabled),
+.checkout-btn:active {
+    transform: translateY(1px);
+}
+
+.kham-toast {
+    transition: opacity 200ms ease, transform 220ms ease;
+}
+
+.promo_bar:not([hidden]) {
+    animation: announcement-enter 220ms ease-out both;
+}
+
+.collection-banner-card {
+    position: relative;
+    height: 420px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #111;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, .08);
+    transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.collection-banner-card:hover,
+.collection-banner-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 24px rgba(0, 0, 0, .12);
+}
+
+.collection-banner-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 260ms ease;
+}
+
+.collection-banner-card:hover img {
+    transform: scale(1.02);
+}
+
+.collection-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 25px;
+    background: linear-gradient(to top, rgba(0, 0, 0, .82), rgba(0, 0, 0, .25) 52%, transparent);
+}
+
+.collection-brand {
+    color: #d0cbd2;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.collection-overlay h3 {
+    color: #fff;
+    margin: 0 0 12px;
+    font-size: 22px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.collection-discover {
+    display: inline-flex;
+    align-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 1px solid #fff;
+    width: max-content;
+    padding-bottom: 2px;
+}
+
+.home-intro {
+    animation: quiet-enter 300ms ease-out both;
+}
+
+/* Task 6: compact reveal motion and touch-friendly interactions */
+.product-card {
+    transition: box-shadow 220ms ease;
+}
+
+.product-card:hover {
+    transform: none;
+}
+
+.product-img-wrapper img {
+    transition: transform 260ms ease;
+}
+
+.color-option {
+    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.size-btn:not(:disabled) {
+    transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 150ms ease;
+}
+
+.size-btn:not(:disabled):hover {
+    transform: none;
+}
+
+.quantity-selector button {
+    transition: color 160ms ease, opacity 160ms ease, transform 140ms ease;
+}
+
+.btn-cart,
+.btn-buy,
+.complete-order-btn,
+.checkout-btn,
+.continue-btn,
+.save-btn,
+.admin-secondary-btn,
+.logout-btn,
+.clear-btn {
+    transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, opacity 180ms ease, transform 150ms ease;
+}
+
+.menu-toggle .bar {
+    transition: transform 220ms ease, opacity 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-card:hover img {
+        transform: scale(1.03);
+    }
+
+    .product-card:hover .product-img-wrapper {
+        box-shadow: 0 7px 20px rgba(33, 20, 42, .08);
+    }
+
+    .color-option:hover:not(.active) {
+        opacity: .82;
+    }
+
+    .collection-banner-card:hover {
+        transform: none;
+    }
+
+    .collection-banner-card:hover img {
+        transform: scale(1.02);
+    }
+}
+
+@media (hover: none) {
+
+    .product-card:hover img,
+    .collection-banner-card:hover img {
+        transform: none;
+    }
+
+    .collection-banner-card:hover {
+        transform: none;
+    }
+}
+
+@media (max-width: 991px) {
+    .header .nav {
+        opacity: 0;
+        transition: transform 220ms ease, opacity 180ms ease;
+    }
+
+    .header .nav.open,
+    .header .nav.active {
+        opacity: 1;
+    }
+}
+
+@keyframes quiet-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes announcement-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .kham-toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        justify-content: center;
+        padding: 13px 16px;
+    }
+
+    .collection-banner-card {
+        height: min(420px, 105vw);
+    }
+
+    .collection-overlay {
+        padding: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+
+    .ticker-text {
+        animation: none !important;
+        padding-left: 0;
+    }
+
+    .kham-spinner,
+    .kham-brand-text {
+        animation: none !important;
+    }
+
+    .home-intro,
+    .promo_bar:not([hidden]) {
+        animation: none !important;
+    }
 }

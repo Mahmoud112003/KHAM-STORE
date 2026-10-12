@@ -442,6 +442,132 @@ input[type="file"] {
     cursor: pointer;
 }
 
+.home-banners-admin {
+    margin-bottom: 40px;
+    padding: 30px;
+    border: 1px solid #eee;
+    border-radius: var(--border-radius);
+    background: #faf9f7;
+}
+
+.home-banners-admin h2 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    font-size: 22px;
+    font-weight: 900;
+}
+
+.home-banner-form {
+    padding: 20px;
+    border: 1px solid #e4e0e4;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.home-hero-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 1;
+    overflow: hidden;
+}
+
+.home-banner-preview-frame[hidden] {
+    display: none;
+}
+
+.home-hero-image {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--hero-x, 50%) var(--hero-y, 50%);
+    transform: scale(var(--hero-scale, 1));
+    transform-origin: var(--hero-x, 50%) var(--hero-y, 50%);
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.home-banner-preview-frame {
+    width: 100%;
+    max-width: 900px;
+    margin: 16px 0;
+    border-radius: 8px;
+    background: #e9e6e3;
+}
+
+.home-banner-preview-frame[hidden] {
+    display: none;
+}
+
+.home-banner-preview {
+    cursor: grab;
+    touch-action: none;
+}
+
+.home-banner-preview.is-dragging {
+    cursor: grabbing;
+}
+
+.home-banner-position-help {
+    margin: -6px 0 12px;
+    color: #777;
+    font-size: 13px;
+}
+
+.home-banner-zoom {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 420px;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.home-banner-zoom input {
+    flex: 1;
+    accent-color: var(--primary-color);
+}
+
+.home-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.home-banner-actions .home-banner-delete {
+    padding: 10px 16px;
+    border: 1px solid #ffe5e5;
+    border-radius: 8px;
+    color: var(--danger);
+    background: #ffe5e5;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.home-banner-actions .home-banner-delete:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.home-banner-message {
+    min-height: 1.5em;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.home-banner-message.is-error {
+    color: var(--danger);
+}
+
+.home-banner-message.is-success {
+    color: var(--success);
+}
+
 /* =========================================
    PRODUCTS TABLE SECTION
    ========================================= */
@@ -647,5 +773,54 @@ tr:hover {
 
     .form-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .home-hero-frame {
+        aspect-ratio: 2 / 1;
+    }
+
+    .home-banners-admin {
+        margin-inline: -12px;
+        padding: 12px;
+    }
+
+    .home-banner-form {
+        padding: 12px;
+    }
+
+    .home-banner-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .home-banner-actions .save-btn {
+        width: 100%;
+    }
+}
+
+/* Task 5: keyboard and reduced-motion support for admin controls */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--primary-color, #2b1142);
+    outline-offset: 2px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+select,
+textarea { caret-color: auto; }
+
+button:disabled { cursor: not-allowed; opacity: .6; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
     }
 }

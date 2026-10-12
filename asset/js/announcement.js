@@ -1,5 +1,4 @@
-import { db, doc, getDoc } from './firebase-config.js';
-import { setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { db, doc, getDoc, setDoc } from './firebase-config.js';
 
 export const DEFAULT_ANNOUNCEMENT_SETTINGS = {
     enabled: false,
@@ -7,6 +6,9 @@ export const DEFAULT_ANNOUNCEMENT_SETTINGS = {
     backgroundColor: '#2B1142',
     textColor: '#FFFFFF'
 };
+
+let announcementCache = null;
+let announcementRequest = null;
 
 export function isSafeAnnouncementColor(value) {
     return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
@@ -22,12 +24,52 @@ function normalizeAnnouncementSettings(data) {
 }
 
 export async function loadAnnouncementSettings() {
+    if (announcementCache) {
+        return announcementCache;
+    }
+
+    if (announcementRequest) {
+        return announcementRequest;
+    }
+
+    if (performance?.mark) {
+        performance.mark('announcement-fetch-start');
+    }
+
     const announcementRef = doc(db, 'siteSettings', 'announcement');
-    const announcementSnapshot = await getDoc(announcementRef);
+    announcementRequest = getDoc(announcementRef)
+        .then((announcementSnapshot) => {
+            if (!announcementSnapshot.exists()) {
+                announcementCache = null;
+                return null;
+            }
 
-    if (!announcementSnapshot.exists()) return null;
+            announcementCache = normalizeAnnouncementSettings(announcementSnapshot.data());
+            return announcementCache;
+        })
+        .catch((error) => {
+            console.error('Announcement settings fetch failed:', error);
+            announcementCache = null;
+            throw error;
+        })
+        .finally(() => {
+            announcementRequest = null;
+            if (performance?.mark && performance?.measure) {
+                performance.mark('announcement-fetch-end');
+                try {
+                    performance.measure('announcement-fetch-duration', 'announcement-fetch-start', 'announcement-fetch-end');
+                } catch (measureError) {
+                    console.debug('Announcement fetch measurement skipped:', measureError);
+                }
+            }
+        });
 
-    return normalizeAnnouncementSettings(announcementSnapshot.data());
+    return announcementRequest;
+}
+
+export function clearAnnouncementCache() {
+    announcementCache = null;
+    announcementRequest = null;
 }
 
 export async function saveAnnouncementSettings(settings) {
@@ -47,6 +89,7 @@ export async function saveAnnouncementSettings(settings) {
     };
 
     await setDoc(doc(db, 'siteSettings', 'announcement'), announcement, { merge: true });
+    announcementCache = announcement;
     return announcement;
 }
 
