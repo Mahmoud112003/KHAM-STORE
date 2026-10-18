@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="asset/css/all.min.css">
 </head>
 
-<body>
+<body class="has-transparent-nav">
     <!-- شاشة تحميل متجر خام -->
     <div id="kham-loader" class="kham-loader-wrapper">
         <div class="kham-spinner"></div>
@@ -24,8 +24,58 @@
     </div>
 
     <div id="nav-placeholder"></div>
-    <section id="homeHeroBanner" class="home-hero-banner home-hero-frame" aria-label="Home Hero Banner" hidden>
-        <img id="homeHeroBannerImage" class="home-hero-image" alt="KHAM Home Hero Banner">
+
+    <!-- KHAM HERO SLIDER -->
+    <section class="kham-slider-section" aria-label="Hero Carousel">
+        <div class="kham-slider-wrapper" id="khamHeroSlider">
+
+    <!-- Slide 1: Charcoal Phoenix Hoodie -->
+            <div class="kham-slide active">
+                <img src="asset/images/Charcoal Hoodie with Phoenix Wings.png" alt="KHAM Phoenix Charcoal Hoodie" class="kham-slide-img" fetchpriority="high">
+                <div class="kham-slide-overlay"></div>
+                <div class="kham-slide-content">
+                    <span class="kham-badge">NEW ARTWORK DROP</span>
+                    <h1 class="kham-title">The Phoenix Edition</h1>
+                    <p class="kham-desc">
+                        Intricate statement back-print on premium charcoal heavyweight fleece. Dropped shoulders and raw durability designed to stand out.
+                    </p>
+                    <a href="product.html" class="kham-btn">EXPLORE THE DROP</a>
+                    <div class="kham-rating">
+                        <span class="kham-stars">★★★★★</span>
+                        <span class="kham-rating-text">Premium Heavyweight Quality</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: Minimalist Arabic Logo Hoodie -->
+            <div class="kham-slide">
+                <img src="asset/images/Minimalist Hoodie Portrait with Arabic Logo.png" alt="KHAM Signature White Hoodie" class="kham-slide-img" loading="lazy">
+                <div class="kham-slide-overlay"></div>
+                <div class="kham-slide-content">
+                    <span class="kham-badge">THE SIGNATURE ESSENTIALS</span>
+                    <h1 class="kham-title">Original KHAM Basics</h1>
+                    <p class="kham-desc">
+                        Pure minimalist aesthetics meet 100% heavyweight Egyptian cotton. Engineered with a tailored boxy fit for everyday effortless luxury.
+                    </p>
+                    <a href="product.html" class="kham-btn">SHOP THE SIGNATURE</a>
+                    <div class="kham-rating">
+                        <span class="kham-stars">★★★★★</span>
+                        <span class="kham-rating-text">Rated 4.9/5 by 1,000+ customers</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- Carousel Progress Indicators & Play/Pause Controls -->
+        <div class="kham-slider-controls">
+            <div class="kham-indicators" id="khamIndicators">
+                <button class="kham-indicator-bar active" data-index="0" aria-label="Slide 1"></button>
+                <button class="kham-indicator-bar" data-index="1" aria-label="Slide 2"></button>
+            </div>
+            <button class="kham-pause-btn" id="khamPauseBtn" aria-label="Pause Auto Slider">
+                <i class="fa-solid fa-pause"></i>
+            </button>
+        </div>
     </section>
 
     <section class="hero">
@@ -57,7 +107,7 @@
     <script type="module" src="asset/js/main.js"></script>
     <script type="module" src="asset/js/cart.js"></script>
     <script type="module" src="asset/js/home.js"></script>
-    <script type="module" src="asset/js/home-banners.js"></script>
+    <script type="module" src="asset/js/kham-slider.js"></script>
     <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/all.min.js"></script>
     <script type="module" src="asset/js/motion.js"></script>

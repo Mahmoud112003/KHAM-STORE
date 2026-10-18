@@ -18,9 +18,5 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /homeBanners/homeHero {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
   }
 }

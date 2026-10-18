@@ -164,6 +164,37 @@ body {
 }
 
 
+/* ========================================================
+   TRANSPARENT NAVBAR OVER HERO SLIDER (HOME PAGE ONLY)
+   ======================================================== */
+body.has-transparent-nav #nav-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+body.has-transparent-nav .top_nav {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.has-transparent-nav .header {
+    background-color: transparent !important;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.has-transparent-nav .header.is-scrolled {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(223, 220, 217, 0.95) !important;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
 /* ========================================
    HERO SECTION (TICKER ANIMATION)
    ======================================== */
@@ -189,39 +220,192 @@ body {
     animation-play-state: paused;
 }
 
-.home-hero-frame {
+/* ========================================
+   KHAM HERO SLIDER - FULLSCREEN HERO
+   ======================================== */
+.kham-slider-section {
     position: relative;
     width: 100%;
-    aspect-ratio: 3 / 1;
+    height: 100vh;
+    min-height: 600px;
+    background-color: #121212;
     overflow: hidden;
 }
 
-.home-hero-banner {
-    max-width: 1800px;
-    margin: 0 auto;
+.kham-slider-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
-.home-hero-banner[hidden] {
-    display: none;
-}
-
-.home-hero-image {
-    display: block;
+.kham-slide {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
+}
+
+.kham-slide.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.kham-slide-img {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    object-position: var(--hero-x, 50%) var(--hero-y, 50%);
-    transform: scale(var(--hero-scale, 1));
-    transform-origin: var(--hero-x, 50%) var(--hero-y, 50%);
+    object-position: center center;
+    display: block;
     user-select: none;
     -webkit-user-drag: none;
 }
 
-@media (max-width: 600px) {
-    .home-hero-frame {
-        aspect-ratio: 2 / 1;
+.kham-slide-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.15) 0%,
+        transparent 20%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.75) 100%
+    );
+    pointer-events: none;
+}
+
+.kham-slide-content {
+    position: absolute;
+    bottom: 8%;
+    left: 5%;
+    max-width: 620px;
+    z-index: 10;
+    color: #ffffff;
+    text-align: left;
+}
+
+.kham-badge {
+    display: inline-block;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.kham-title {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 15px;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+}
+
+.kham-desc {
+    font-size: clamp(13px, 1.3vw, 16px);
+    line-height: 1.6;
+    margin-bottom: 22px;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.kham-btn {
+    display: inline-block;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #ffffff;
+    padding-bottom: 4px;
+    margin-bottom: 25px;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.kham-btn:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+.kham-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.kham-stars {
+    letter-spacing: 2px;
+    font-size: 14px;
+}
+
+.kham-slider-controls {
+    position: absolute;
+    bottom: 6%;
+    right: 5%;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 15;
+}
+
+.kham-indicators {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kham-indicator-bar {
+    width: 32px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.4);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.3s, width 0.3s;
+    padding: 0;
+}
+
+.kham-indicator-bar.active {
+    background: #ffffff;
+    width: 48px;
+}
+
+.kham-pause-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.kham-pause-btn:hover {
+    color: #ffffff;
+}
+
+@media (max-width: 768px) {
+    .kham-slider-section {
+        height: 85vh;
+        min-height: 520px;
+    }
+
+    .kham-slide-content {
+        bottom: 10%;
+        left: 6%;
+        right: 6%;
+        max-width: 100%;
+    }
+
+    .kham-slider-controls {
+        bottom: 4%;
+        right: 6%;
     }
 }
 

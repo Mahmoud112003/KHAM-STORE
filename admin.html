@@ -142,34 +142,6 @@
             </form>
         </section>
 
-        <section class="home-banners-admin" aria-labelledby="homeBannersHeading">
-            <h2 id="homeBannersHeading">Home Hero Banner</h2>
-            <form id="homeBannerForm" class="home-banner-form" hidden>
-                <div class="form-group">
-                    <label for="homeBannerImage">Banner image</label>
-                    <input type="file" id="homeBannerImage" accept="image/*">
-                </div>
-                <div id="homeBannerPreviewFrame" class="home-hero-frame home-banner-preview-frame" aria-label="Banner crop preview" hidden>
-                    <img id="homeBannerPreview" class="home-hero-image" alt="Home Hero Banner preview" hidden>
-                </div>
-                <p class="home-banner-position-help">Drag the image to position it. Zoom in for more movement.</p>
-                <label class="home-banner-zoom" for="homeBannerZoom">
-                    <span>Zoom</span>
-                    <input type="range" id="homeBannerZoom" min="1" max="3" step="0.01" value="1">
-                </label>
-                <p id="homeBannerStatus" class="home-banner-status"></p>
-                <label class="announcement-toggle" for="homeBannerEnabled">
-                    <input type="checkbox" id="homeBannerEnabled">
-                    <span>Enabled</span>
-                </label>
-                <div class="home-banner-actions">
-                    <button type="submit" id="saveHomeBanner" class="save-btn">Save Banner</button>
-                    <button type="button" id="deleteHomeBanner" class="home-banner-delete" disabled>Delete Banner</button>
-                </div>
-            </form>
-            <p id="homeBannerMessage" class="home-banner-message" role="status" aria-live="polite"></p>
-        </section>
-
         <div class="products-header" style="margin-top: 40px;">
             <h2>المنتجات المضافة</h2>
             <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder"
@@ -194,7 +166,6 @@
     </div>
 
     <script type="module" src="asset/js/admin.js"></script>
-    <script type="module" src="asset/js/home-banners-admin.js"></script>
     <script type="module" src="asset/js/i18n.js"></script>
     <script type="module" src="asset/js/motion.js"></script>
 </body>
