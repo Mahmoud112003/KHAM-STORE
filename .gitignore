@@ -1,0 +1,15 @@
+.vercel
+.env*
+
+# Dependencies
+node_modules/
+
+# Test files
+test-order.json
+
+# Firebase private credentials
+service-account*.json
+*serviceAccount*.json
+
+# Local environment
+.env*

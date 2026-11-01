@@ -115,6 +115,7 @@
                 والبيانات</button>
             <div id="adminMsg"
                 style="display: none; padding: 10px; margin-top: 10px; border-radius: 5px; text-align: center;"></div>
+
         </form>
 
         <section class="announcement-settings" aria-labelledby="announcementHeading">
@@ -139,7 +140,53 @@
                     </div>
                 </div>
                 <button type="submit" class="save-btn">Save Announcement</button>
+
             </form>
+
+            <section class="announcement-settings" aria-labelledby="notificationHeading">
+                <h2 id="notificationHeading">Order Notifications</h2>
+
+                <p style="margin-bottom: 15px; color: #888;">
+                    Enable notifications to receive alerts when a new order arrives.
+                </p>
+
+                <button type="button" id="enableNotificationsBtn" class="save-btn" style="margin-top: 10px;">
+                    Enable Notifications
+                </button>
+
+                <p id="notificationStatus" role="status" aria-live="polite" style="margin-top: 15px;">
+                </p>
+            </section>
+
+            <script type="module">
+                import { enableNotifications } from "./asset/js/enable-notifications.js";
+
+                const button = document.getElementById("enableNotificationsBtn");
+                const status = document.getElementById("notificationStatus");
+
+                button.addEventListener("click", async () => {
+                    button.disabled = true;
+                    status.textContent = "Activating notifications...";
+
+                    try {
+                        const result = await enableNotifications();
+
+                        status.textContent = result.message;
+
+                        if (!result.success) {
+                            status.style.color = "#d9534f";
+                        } else {
+                            status.style.color = "#2e9d65";
+                        }
+                    } catch (error) {
+                        status.textContent = "Failed to activate notifications.";
+                        status.style.color = "#d9534f";
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            </script>
+
         </section>
 
         <div class="products-header" style="margin-top: 40px;">
