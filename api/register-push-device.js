@@ -9,35 +9,42 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
+  let stage = "start";
+
   try {
-    // Verify authorization header
+    stage = "authorization";
+
     const authorization = req.headers.authorization || "";
     const match = authorization.match(/^Bearer\s+(.+)$/i);
 
     if (!match) {
       return res.status(401).json({
-        error: "Authentication required"
+        error: "Authentication required",
+        stage
       });
     }
 
-    // Initialize Firebase Admin
+    stage = "firebase_admin_init";
+
     const { auth, db } = getFirebaseAdmin();
 
-    // Verify Firebase ID token
-    const decoded = await auth.verifyIdToken(match[1], true);
+    stage = "verify_admin_token";
+
+    // Verify signature and expiration without the extra revocation lookup.
+    const decoded = await auth.verifyIdToken(match[1]);
 
     if (decoded.uid !== ADMIN_UID) {
       return res.status(403).json({
-        error: "Admin access required"
+        error: "Admin access required",
+        stage
       });
     }
 
-    // Validate FCM token
+    stage = "validate_fcm_token";
+
     const { token } = req.body || {};
 
     if (
@@ -46,44 +53,39 @@ module.exports = async function handler(req, res) {
       token.length > 4096
     ) {
       return res.status(400).json({
-        error: "Invalid FCM token"
+        error: "Invalid FCM token",
+        stage
       });
     }
 
-    // Generate hashed device ID
+    stage = "save_firestore";
+
     const tokenId = createHash("sha256")
       .update(token)
       .digest("hex");
 
-    // Save device token in Firestore
-    await db.collection("adminPushDevices")
-      .doc(tokenId)
-      .set({
-        token,
-        uid: decoded.uid,
-        updatedAt: new Date(),
-        userAgent: String(
-          req.headers["user-agent"] || ""
-        ).slice(0, 300)
-      }, {
-        merge: true
-      });
+    await db.collection("adminPushDevices").doc(tokenId).set({
+      token,
+      uid: decoded.uid,
+      updatedAt: new Date(),
+      userAgent: String(req.headers["user-agent"] || "").slice(0, 300)
+    }, { merge: true });
 
-    return res.status(200).json({
-      success: true
-    });
+    console.log("Push device registered successfully:", tokenId);
+
+    return res.status(200).json({ success: true });
 
   } catch (error) {
-    // Log full error details in Vercel
-    console.error("Device registration failed:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack
+    console.error("Push registration failure:", {
+      stage,
+      code: error.code || null,
+      message: error.message || String(error),
+      stack: error.stack || null
     });
 
     return res.status(500).json({
-      error: "Device registration failed"
+      error: "Device registration failed",
+      stage
     });
   }
 };
