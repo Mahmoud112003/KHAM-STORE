@@ -30,6 +30,7 @@ async function startForegroundListener(messaging, registration) {
             await registration.showNotification(title, {
                 body,
                 icon: "/favicon.ico",
+                badge: "/favicon.ico",
                 tag: data.orderId || `kham-order-${Date.now()}`,
                 requireInteraction: true,
                 data: {

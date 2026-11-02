@@ -1,7 +1,4 @@
 
-// ==========================================
-// 1. IMPORTS
-// ==========================================
 import { updateCartCount } from './store.js';
 import { trackInitiateCheckout, trackPurchase } from './analytics.js';
 import { renderAnnouncement } from './announcement.js';
@@ -20,14 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemsContainer = document.getElementById("checkoutItems");
     const summaryContainer = document.querySelector(".summary-totals");
 
-    // Google Sheets
     const SHEETDB_URL = 'https://sheetdb.io/api/v1/gu3num91nnr6s';
 
     // ==========================================
     // 2. RENDER CHECKOUT
     // ==========================================
-    function renderCheckout() {
 
+    function renderCheckout() {
         const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
         if (!itemsContainer) return;
@@ -38,8 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
             itemsContainer.innerHTML = `
                 <p style="text-align:center;">
                     ${window.getText
-                    ? window.getText('cartEmptyMessage')
-                    : 'Your cart is empty'}
+                        ? window.getText('cartEmptyMessage')
+                        : 'Your cart is empty'}
                 </p>`;
 
             if (summaryContainer) summaryContainer.innerHTML = "";
@@ -49,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let subtotal = 0;
 
         cart.forEach(item => {
-
             subtotal += item.price * item.qty;
 
             itemsContainer.innerHTML += `
@@ -70,9 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
         });
 
-        // Shipping calculation
         let shipping = 0;
-
         const selectedGov = govSelect ? govSelect.value : "";
 
         if (selectedGov === "Cairo" || selectedGov === "Giza") {
@@ -84,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = subtotal + shipping;
 
         if (summaryContainer) {
-
             let shippingDisplay = selectedGov === ""
                 ? (window.getText
                     ? window.getText('governoratePlaceholder')
@@ -125,12 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 3. SUCCESS PAGE
     // ==========================================
+
     function showSuccessPage(customerName, orderID) {
 
         window.copyOrderNumber = function () {
-
             navigator.clipboard.writeText(orderID).then(() => {
-
                 const copyBtn = document.getElementById("copyIconBtn");
 
                 if (!copyBtn) return;
@@ -199,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 4. SUBMIT ORDER + FIREBASE NOTIFICATION
     // ==========================================
+
     if (form) {
 
         form.addEventListener('submit', async (e) => {
@@ -209,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (cart.length === 0) return;
 
-            // Prevent duplicate submission
             const btn = document.querySelector(".complete-order-btn");
 
             if (btn && btn.disabled) return;
@@ -287,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const totalPrice = totalElement.innerText;
 
-                // Generate order ID and unique event ID
+                // Generate order ID and event ID
                 const generatedID =
                     `KHM${Math.floor(Math.random() * 10000)}`;
 
@@ -313,9 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }]
                 };
 
-                // ==========================================
                 // STEP 1: SAVE ORDER TO SHEETDB
-                // ==========================================
                 const response = await fetch(SHEETDB_URL, {
                     method: 'POST',
                     headers: {
@@ -332,76 +321,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 console.log("Order saved successfully:", generatedID);
 
-                // ==========================================
                 // STEP 2: TRACK PURCHASE
-                // ==========================================
                 const purchaseValue = parseFloat(
                     totalPrice.replace(/[^\d.]/g, "")
                 );
 
                 trackPurchase(generatedID, purchaseValue, cart);
 
-                // ==========================================
                 // STEP 3: CLEAR CART
-                // ==========================================
                 localStorage.removeItem("cart");
                 updateCartCount();
 
-                // ==========================================
                 // STEP 4: SHOW SUCCESS PAGE
-                // ==========================================
                 showSuccessPage(firstName, generatedID);
 
-                // ==========================================
                 // STEP 5: SEND FIREBASE ADMIN NOTIFICATION
-                // ==========================================
-                fetch("/api/notify-new-order", {
+                try {
 
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        orderId: generatedID,
-                        eventId: eventId,
-                        customerName: customerName,
-                        total: totalPrice
-                    })
-
-                })
-                    .then(async notificationResponse => {
-
-                        const result = await notificationResponse.json();
-
-                        if (
-                            !notificationResponse.ok ||
-                            !result.success ||
-                            result.failed > 0
-                        ) {
-                            console.error(
-                                "Admin notification failed:",
-                                result
-                            );
-
-                            return;
+                    const notificationResponse = await fetch(
+                        "/api/notify-new-order",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                orderId: generatedID,
+                                eventId: eventId,
+                                customerName: customerName,
+                                total: totalPrice
+                            })
                         }
+                    );
 
+                    const result = await notificationResponse.json();
+
+                    if (
+                        !notificationResponse.ok ||
+                        !result.success ||
+                        result.failed > 0
+                    ) {
+                        console.error(
+                            "Admin notification failed:",
+                            result
+                        );
+                    } else {
                         console.log(
                             "KHAM admin notification sent successfully:",
                             result
                         );
+                    }
 
-                    })
-                    .catch(error => {
-
-                        console.error(
-                            "Admin notification request failed:",
-                            error
-                        );
-
-                    });
+                } catch (error) {
+                    console.error(
+                        "Admin notification request failed:",
+                        error
+                    );
+                }
 
             } catch (error) {
 
